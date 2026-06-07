@@ -1,0 +1,19 @@
+# --- Python / Backend ---
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/.env
+
+# --- Flutter / Frontend ---
+frontend/tet_a_tet_app/build/
+frontend/tet_a_tet_app/.dart_tool/
+frontend/tet_a_tet_app/.packages
+frontend/tet_a_tet_app/pubspec.lock # Можно не игнорировать, но для начала пусть будет тут, если захочешь менять зависимости локально
+
+# --- IDE и ОС ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

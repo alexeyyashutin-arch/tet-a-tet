@@ -1,0 +1,12 @@
+services:
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000" # Связываем порт компьютера с портом контейнера
+    volumes:
+      - ./backend:/app # Магия! Изменения в твоей папке backend сразу видны в контейнере
+    environment:
+      - ENVIRONMENT=development
+    restart: unless-stopped
