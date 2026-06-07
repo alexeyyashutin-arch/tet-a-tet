@@ -2,7 +2,7 @@
 FROM python:3.11-slim
 
 # 2. Устанавливаем рабочую директорию внутри контейнера
-WORKDIR /app
+WORKDIR /tet-a-tet-backend
 
 # 3. Копируем файл зависимостей первым, чтобы использовать кэш Docker
 COPY requirements.txt .
@@ -18,4 +18,4 @@ EXPOSE 8000
 
 # 7. Команда для запуска нашего сервера Uvicorn
 # 0.0.0.0 означает, что сервер будет доступен не только внутри контейнера, но и снаружи!
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

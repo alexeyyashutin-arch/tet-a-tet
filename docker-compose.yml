@@ -4,9 +4,34 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000" # Связываем порт компьютера с портом контейнера
+      - "8000:8000"
     volumes:
-      - ./backend:/app # Магия! Изменения в твоей папке backend сразу видны в контейнере
+      - ./backend/app:/tet-a-tet-backend/app
+      - ./backend/uploads:/tet-a-tet-backend/uploads
     environment:
-      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+asyncpg://tete_user:tete_secret_password@db:5432/tet_a_tet_db
+    depends_on:
+      db:
+        condition: service_healthy # ← ВОТ ЭТО МАГИЯ! Ждём, пока база будет здорова
     restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tete_user
+      POSTGRES_PASSWORD: tete_secret_password
+      POSTGRES_DB: tet_a_tet_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    # Добавляем healthcheck для базы данных
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tete_user -d tet_a_tet_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
