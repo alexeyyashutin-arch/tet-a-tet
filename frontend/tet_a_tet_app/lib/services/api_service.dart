@@ -77,7 +77,7 @@ class ApiService {
     try {
       final response = await _dio.get('/users/me');
       return response.data;
-    } on DioException catch (e) {
+    } on DioException {
       // Если токен протух или его нет, вернем null
       return null;
     }
@@ -213,6 +213,47 @@ class ApiService {
   Future<bool> deletePhoto(String photoId) async {
     try {
       final response = await _dio.delete('/photos/$photoId');
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // 📅 Создать встречу
+  Future<bool> createMeeting(Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.post('/meetings/', data: data);
+      return response.statusCode == 201;
+    } catch (e) {
+      print('❌ Ошибка создания встречи: $e');
+      return false;
+    }
+  }
+
+  // 📋 Получить активные встречи
+  Future<List<dynamic>?> getActiveMeetings() async {
+    try {
+      final response = await _dio.get('/meetings/');
+      return response.data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 👤 Получить мои встречи
+  Future<List<dynamic>?> getMyMeetings() async {
+    try {
+      final response = await _dio.get('/meetings/my');
+      return response.data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ❌ Отменить встречу
+  Future<bool> cancelMeeting(String meetingId) async {
+    try {
+      final response = await _dio.delete('/meetings/$meetingId');
       return response.statusCode == 200;
     } catch (e) {
       return false;

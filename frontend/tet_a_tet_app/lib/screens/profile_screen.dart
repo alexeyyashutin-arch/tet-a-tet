@@ -1,12 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:tet_a_tet_app/screens/album_screen.dart';
+import 'package:tet_a_tet_app/screens/albums_screen.dart';
 import '../services/api_service.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/background_pattern.dart';
+import 'meetings_feed_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,7 +20,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _api = ApiService();
   Map<String, dynamic>? _profile;
   bool _isLoading = true;
-  
+  List<dynamic> _myMeetings = [];
+
   // Переменные для аватарки
   final ImagePicker _picker = ImagePicker();
   File? _selectedImage;
@@ -33,10 +35,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final data = await _api.getProfile();
-    setState(() {
-      _profile = data;
-      _isLoading = false;
-    });
+    final meetings = await _api.getMyMeetings(); // 🆕 Загружаем встречи
+    
+    if (mounted) {
+      setState(() {
+        _profile = data;
+        _myMeetings = meetings ?? []; // 🆕 Сохраняем их
+        _isLoading = false;
+      });
+    }
   }
 
   // Метод для выбора и загрузки фото
@@ -72,30 +79,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final Color accentColor = const Color(0xFFD4AF37);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      // backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
+        // backgroundColor: const Color(0xFF121212),
         elevation: 0,
         title: const Text(
           'Мой Профиль',
           style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, letterSpacing: 1.5),
         ),
         actions: [
-          // Кнопка альбомов
-          IconButton(
-            icon: const Icon(Icons.photo_library, color: Color(0xFFD4AF37)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AlbumsScreen(
-                    userId: _profile!['id'].toString(),
-                    isMyProfile: true,
-                  ),
-                ),
-              );
-            },
-          ),
           IconButton(
             icon: const Icon(Icons.edit, color: Color(0xFFD4AF37)),
             onPressed: () {
@@ -251,6 +243,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           ),
                         ),
+                      const SizedBox(height: 32),
+                      
+                      // Заголовок секции
+                      const Padding(
+                        padding: EdgeInsets.only(left: 4.0),
+                        child: Text(
+                          'Мои встречи',
+                          style: TextStyle(
+                            color: Color(0xFFD4AF37), 
+                            fontSize: 18, 
+                            fontWeight: FontWeight.bold, 
+                            letterSpacing: 1
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      //  Активные встречи
+                      ..._myMeetings
+                          .where((m) => m['status'] == 'active')
+                          .map((m) => _buildActiveMeetingCard(m))
+                          .toList(),
+                      
+                      // 📦 Архив (раскрывающийся список)
+                      if (_myMeetings.any((m) => m['status'] != 'active'))
+                        Container(
+                          margin: const EdgeInsets.only(top: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E1E1E),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Theme(
+                            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                            child: ExpansionTile(
+                              title: const Text(
+                                'Архив встреч', 
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                              ),
+                              trailing: const Icon(Icons.expand_more, color: Color(0xFFD4AF37)),
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
+                                  child: Column(
+                                    children: _myMeetings
+                                        .where((m) => m['status'] != 'active')
+                                        .map((m) => _buildArchiveMeetingCard(m))
+                                        .toList(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),                        
                       ],
                     ),
                   ),
@@ -268,5 +313,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (gender == 'female') text += '• Женщина';
     
     return text.isEmpty ? 'Заполни свой профиль' : text;
+  }
+
+    Widget _buildActiveMeetingCard(Map<String, dynamic> meeting) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            meeting['title'],
+            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.calendar_today, color: Color(0xFFD4AF37), size: 16),
+              const SizedBox(width: 6),
+              Text(
+                '${meeting['meeting_date']} в ${meeting['meeting_time']}',
+                style: const TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+            ],
+          ),
+          if (meeting['location'] != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.location_on, color: Color(0xFFD4AF37), size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  meeting['location'],
+                  style: const TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    backgroundColor: const Color(0xFF1E1E1E),
+                    title: const Text('Отменить встречу?', style: TextStyle(color: Colors.white)),
+                    content: const Text('Вы уверены?', style: TextStyle(color: Colors.grey)),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Нет')),
+                      TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Да', style: TextStyle(color: Colors.redAccent))),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await _api.cancelMeeting(meeting['id'].toString());
+                  _loadProfile(); // Перезагружаем, чтобы обновить список
+                }
+              },
+              icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 18),
+              label: const Text('Отменить', style: TextStyle(color: Colors.redAccent)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArchiveMeetingCard(Map<String, dynamic> meeting) {
+    final isCancelled = meeting['status'] == 'cancelled';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF252525),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  meeting['title'],
+                  style: TextStyle(
+                    color: Colors.grey, 
+                    fontSize: 14, 
+                    fontWeight: FontWeight.bold,
+                    decoration: isCancelled ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${meeting['meeting_date']} в ${meeting['meeting_time']}',
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isCancelled ? Colors.redAccent.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              isCancelled ? 'Отменена' : 'Завершена',
+              style: TextStyle(
+                color: isCancelled ? Colors.redAccent : Colors.green,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

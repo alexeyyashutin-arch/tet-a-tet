@@ -53,3 +53,34 @@ class AlbumAccess(Base):
     
     owner = relationship("User", foreign_keys=[owner_id], back_populates="granted_access")
     granted_to = relationship("User", foreign_keys=[granted_to_id], back_populates="received_access")
+
+class Meeting(Base):
+    __tablename__ = "meetings"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    
+    # Основная информация
+    title = Column(String(200), nullable=False)  # "Хочу поужинать в ресторане Река"
+    description = Column(Text, nullable=True)  # Подробное описание
+    
+    # Дата и время
+    meeting_date = Column(Date, nullable=False)
+    meeting_time = Column(String(10), nullable=False)  # "18:00"
+    
+    # Место
+    location = Column(String(200), nullable=True)  # "Ресторан Река"
+    
+    # Пожелания к спутнице/спутнику
+    partner_wishes = Column(Text, nullable=True)
+    
+    # Финансы: "self", "split", "partner", "none"
+    finance = Column(String(20), nullable=False, default="self")
+    
+    # Статус: "active", "completed", "cancelled"
+    status = Column(String(20), nullable=False, default="active")
+    
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    
+    # Связь с пользователем
+    creator = relationship("User", backref="meetings")

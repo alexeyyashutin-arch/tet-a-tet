@@ -78,3 +78,31 @@ class AccessUserInfo(BaseModel):
     username: str | None = None
     avatar_url: str | None = None
     model_config = {"from_attributes": True}
+
+# Схемы для встреч
+class MeetingCreate(BaseModel):
+    title: str = Field(..., min_length=5, max_length=200)
+    description: str | None = None
+    meeting_date: date
+    meeting_time: str = Field(..., pattern=r"^\d{2}:\d{2}$")  # Формат "18:00"
+    location: str | None = None
+    partner_wishes: str | None = None
+    finance: str = Field(default="self", pattern=r"^(self|split|partner|none)$")
+
+class MeetingResponse(BaseModel):
+    id: UUID
+    user_id: UUID
+    title: str
+    description: str | None
+    meeting_date: date
+    meeting_time: str
+    location: str | None
+    partner_wishes: str | None
+    finance: str
+    status: str
+    created_at: datetime
+    creator_username: str | None = None
+    creator_avatar_url: str | None = None
+    creator_age: int | None = None
+    
+    model_config = {"from_attributes": True}

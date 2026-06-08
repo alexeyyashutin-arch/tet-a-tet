@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tet_a_tet_app/screens/main_screen.dart';
 import '../services/api_service.dart';
 import 'profile_screen.dart';
 import '../widgets/background_pattern.dart';
@@ -50,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
+      // backgroundColor: _bgColor,
       body: BackgroundPattern(
         child: SafeArea(
           child: Padding(
@@ -169,7 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // УРА! Токен получен. Плавно переходим на главный экран и удаляем экран входа из истории
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+          MaterialPageRoute(builder: (context) => const MainScreen()),
         );
       } else {
         setState(() {

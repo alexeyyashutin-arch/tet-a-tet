@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
-import 'screens/profile_screen.dart';
+import 'screens/main_screen.dart';
 import 'services/api_service.dart';
 
 void main() {
@@ -27,11 +27,39 @@ class _TetATetAppState extends State<TetATetApp> {
 
   Future<void> _checkAuth() async {
     final token = await _api.getToken();
-    if (mounted) {
-      setState(() {
-        _isLoggedIn = token != null;
-        _isLoading = false;
-      });
+    
+    // Если токена нет — сразу показываем экран входа
+    if (token == null) {
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = false;
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+    
+    // Проверяем токен, но с таймаутом
+    try {
+      final profile = await _api.getProfile().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () => null,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = profile != null;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      // Если ошибка — считаем, что не авторизован
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = false;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -41,17 +69,17 @@ class _TetATetAppState extends State<TetATetApp> {
       title: 'TET-A-TET',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF121212),
+        scaffoldBackgroundColor: Colors.black,
       ),
       home: _isLoading
           ? const Scaffold(
-              backgroundColor: Color(0xFF121212),
+              backgroundColor: Colors.black,
               body: Center(
                 child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
               ),
             )
           : _isLoggedIn
-              ? const ProfileScreen()
+              ? const MainScreen() // <-- Заменили ProfileScreen на MainScreen!
               : const LoginScreen(),
     );
   }

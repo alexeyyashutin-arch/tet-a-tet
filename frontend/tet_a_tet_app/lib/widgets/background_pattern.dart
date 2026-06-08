@@ -19,7 +19,7 @@ class BackgroundPattern extends StatelessWidget {
             image: DecorationImage(
               image: AssetImage('assets/images/background_pattern.png'),
               repeat: ImageRepeat.repeat,
-              opacity: 0.1,
+              opacity: 0.2,
             ),
           ),
           child: child,

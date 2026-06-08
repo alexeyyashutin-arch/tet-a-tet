@@ -18,7 +18,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
   File? _selectedImage;
-  bool _isUploadingAvatar = false;
+  final bool _isUploadingAvatar = false;
 
   late TextEditingController _usernameController;
   late TextEditingController _dobController; // Теперь это дата рождения
@@ -81,9 +81,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      // backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
+        // backgroundColor: const Color(0xFF121212),
         elevation: 0,
         title: const Text('Редактировать', style: TextStyle(color: Color(0xFFD4AF37))),
         actions: [
@@ -130,7 +130,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 const Text('Пол', style: TextStyle(color: Colors.grey, fontSize: 12)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _selectedGender,
+                  initialValue: _selectedGender,
                   dropdownColor: const Color(0xFF1E1E1E),
                   decoration: InputDecoration(
                     filled: true,
