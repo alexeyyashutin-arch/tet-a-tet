@@ -35,7 +35,7 @@ class _MainScreenState extends State<MainScreen> {
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // 🆕 Blur-эффект
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.2), // 🆕 Более прозрачный
+              color: Colors.black.withValues(alpha: 0.2), // 🆕 Более прозрачный
             ),
             child: BottomNavigationBar(
               currentIndex: _currentIndex,

@@ -44,7 +44,7 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // 🆕 Blur-эффект
             child: AppBar(
-              backgroundColor: Colors.black.withOpacity(0.2), // 🆕 Полупрозрачный
+              backgroundColor: Colors.black.withValues(alpha: 0.2), // 🆕 Полупрозрачный
               elevation: 0,
               centerTitle: true,
               title: Text(
@@ -144,10 +144,10 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: const Color(0xFFD4AF37).withOpacity(0.5), 
+                  color: const Color(0xFFD4AF37).withValues(alpha: 0.5), 
                   width: 1,
                 ),
               ),

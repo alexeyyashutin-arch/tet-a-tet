@@ -311,7 +311,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFD4AF37).withOpacity(0.2) : Colors.transparent,
+          color: isSelected ? const Color(0xFFD4AF37).withValues(alpha: 0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: isSelected ? Border.all(color: const Color(0xFFD4AF37), width: 2) : null,
         ),

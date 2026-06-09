@@ -65,7 +65,8 @@ async def create_meeting(
         created_at=meeting.created_at,
         creator_username=current_user.username,
         creator_avatar_url=current_user.avatar_url,
-        creator_age=calculate_age(current_user.birth_date) 
+        creator_age=calculate_age(current_user.birth_date),
+        creator_gender=current_user.gender, 
     )
 
 @router.get("/", response_model=List[MeetingResponse])
@@ -98,7 +99,8 @@ async def get_active_meetings(
             created_at=meeting.created_at,
             creator_username=user.username,
             creator_avatar_url=user.avatar_url,
-            creator_age=calculate_age(current_user.birth_date) 
+            creator_age=calculate_age(user.birth_date),
+            creator_gender=user.gender, 
         ))
     
     return meetings
@@ -130,7 +132,8 @@ async def get_my_meetings(
             created_at=m.created_at,
             creator_username=current_user.username,
             creator_avatar_url=current_user.avatar_url,
-            creator_age=calculate_age(current_user.birth_date) 
+            creator_age=calculate_age(current_user.birth_date),
+            creator_gender=current_user.gender, 
         )
         for m in meetings
     ]

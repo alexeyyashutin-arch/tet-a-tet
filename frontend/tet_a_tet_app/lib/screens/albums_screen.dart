@@ -1,17 +1,19 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../services/api_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../services/api_service.dart';
 import '../widgets/background_pattern.dart';
 
 class AlbumsScreen extends StatefulWidget {
-  final String? userId;  // 🆕 Делаем nullable!
+  final String? userId;
   final bool isMyProfile;
 
   const AlbumsScreen({
     super.key,
-    this.userId,  // 🆕 Убираем required!
+    this.userId,
     this.isMyProfile = true,
   });
 
@@ -35,7 +37,6 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     
-    // Если ID не передали (мы в нижнем меню), узнаем свой ID
     if (widget.userId == null) {
       _loadMyUserId();
     } else {
@@ -45,18 +46,15 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
     }
   }
 
-  // 🆕 Новый метод — узнаём свой ID через профиль
   Future<void> _loadMyUserId() async {
     final profile = await _api.getProfile();
     if (profile != null && mounted) {
       setState(() {
         _currentUserId = profile['id'].toString();
       });
-      // Теперь, когда ID есть, загружаем оба альбома
       _loadPublicPhotos();
       _loadPrivatePhotos();
     } else if (mounted) {
-      // Если не удалось получить профиль — останавливаем загрузку
       setState(() {
         _isLoadingPublic = false;
         _isLoadingPrivate = false;
@@ -65,12 +63,9 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
   }
 
   Future<void> _loadPublicPhotos() async {
-    if (_currentUserId == null) return; // Ждём, пока свой ID загрузится
-    
+    if (_currentUserId == null) return;
     setState(() => _isLoadingPublic = true);
-    //  Используем _currentUserId вместо widget.userId
     final photos = await _api.getPublicPhotos(_currentUserId!); 
-    
     if (mounted) {
       setState(() {
         _publicPhotos = photos ?? [];
@@ -81,12 +76,9 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
 
   Future<void> _loadPrivatePhotos() async {
     if (_currentUserId == null) return;
-
     setState(() => _isLoadingPrivate = true);
-    
     final photos = widget.isMyProfile 
         ? await _api.getMyPrivatePhotos()
-        // 🆕 И здесь тоже используем _currentUserId
         : await _api.getUserPrivatePhotos(_currentUserId!); 
     
     if (mounted) {
@@ -103,11 +95,10 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
     
     if (image != null) {
       final success = await _api.uploadPhoto(File(image.path), albumType);
-      
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Фото загружено в ${albumType == "public" ? "публичный" : "приватный"} альбом!'),
+            content: Text('Фото загружено в ${albumType == "public" ? "публичный" : "приватный"} альбом! 📸'),
             backgroundColor: Colors.green,
           ),
         );
@@ -119,13 +110,13 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
         }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось загрузить фото'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('Не удалось загрузить фото'), backgroundColor: Colors.redAccent),
         );
       }
     }
   }
 
-    Future<void> _deletePhoto(String photoId, int index, String albumType) async {
+  Future<void> _deletePhoto(String photoId, int index, String albumType) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -159,20 +150,39 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        // backgroundColor: const Color(0xFF121212),
-        elevation: 0,
-        title: const Text('Фотоальбомы', style: TextStyle(color: Color(0xFFD4AF37))),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: const Color(0xFFD4AF37),
-          labelColor: const Color(0xFFD4AF37),
-          unselectedLabelColor: Colors.grey,
-          tabs: const [
-            Tab(text: 'Публичный'),
-            Tab(text: 'Приватный 🔒'),
-          ],
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.black,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight + 48.0), // Высота AppBar + TabBar
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: AppBar(
+              backgroundColor: Colors.black.withOpacity(0.3),
+              elevation: 0,
+              centerTitle: true,
+              title: Text(
+                'ФОТОАЛЬБОМЫ',
+                style: GoogleFonts.montserrat(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2.0,
+                  fontSize: 16,
+                ),
+              ),
+              bottom: TabBar(
+                controller: _tabController,
+                indicatorColor: const Color(0xFFD4AF37),
+                labelColor: const Color(0xFFD4AF37),
+                unselectedLabelColor: Colors.grey,
+                labelStyle: GoogleFonts.montserrat(fontWeight: FontWeight.bold, letterSpacing: 1.0, fontSize: 13),
+                tabs: const [
+                  Tab(text: 'ПУБЛИЧНЫЙ'),
+                  Tab(text: 'ПРИВАТНЫЙ 🔒'),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
       body: BackgroundPattern(
@@ -185,18 +195,40 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
         ),
       ),
       floatingActionButton: widget.isMyProfile
-          ? FloatingActionButton(
-              backgroundColor: const Color(0xFFD4AF37),
-              onPressed: () => _showAlbumTypeDialog(),
-              child: const Icon(Icons.add_a_photo, color: Colors.black),
+          ? Padding(
+              // 🆕 Простой и надежный отступ: 80 пикселей снизу гарантированно поднимут кнопку над меню
+              padding: const EdgeInsets.only(bottom: 80.0, right: 16.0),
+              child: FloatingActionButton(
+                backgroundColor: const Color(0xFFD4AF37),
+                elevation: 8,
+                onPressed: () => _showAlbumTypeDialog(),
+                child: const Icon(Icons.add_a_photo, color: Colors.black),
+              ),
             )
           : null,
     );
   }
 
   Widget _buildAlbumTab(String albumType, List<dynamic> photos, bool isLoading) {
+    // SafeArea автоматически отодвинет контент от статус-бара (часов).
+    // Padding(top: 112) опустит его ровно под AppBar (56) + TabBar (48) + 8px воздуха.
+    // Padding(bottom: 80) поднимет контент над нижним меню.
+    return SafeArea(
+      top: true,
+      bottom: false, // Кнопка "+" сама позаботится о нижнем отступе
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10.0, 16, 80.0),
+        child: _buildInnerContent(albumType, photos, isLoading),
+      ),
+    );
+  }
+
+  // Вынесла внутренности в отдельный метод для чистоты кода
+  Widget _buildInnerContent(String albumType, List<dynamic> photos, bool isLoading) {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)));
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+      );
     }
 
     if (photos.isEmpty) {
@@ -214,12 +246,12 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
               albumType == 'public' 
                   ? 'Пока нет публичных фото'
                   : 'Приватный альбом пуст',
-              style: const TextStyle(color: Colors.grey, fontSize: 16),
+              style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 16),
             ),
             if (!widget.isMyProfile && albumType == 'private')
               const Padding(
                 padding: EdgeInsets.only(top: 8.0),
-                child: Text('Нет доступа', style: TextStyle(color: Colors.redAccent)),
+                child: Text('Нет доступа', style: TextStyle(color: Colors.redAccent, fontSize: 14)),
               ),
           ],
         ),
@@ -227,33 +259,49 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 4,
-        mainAxisSpacing: 4,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
       ),
       itemCount: photos.length,
       itemBuilder: (context, index) {
         final photo = photos[index];
         return GestureDetector(
           onTap: () => _showPhotoDialog(photo['url']),
-          onLongPress: widget.isMyProfile ? () => _deletePhoto(photo['id'], index, albumType) : null,
-          child: Hero(
-            tag: photo['id'],
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: CachedNetworkImage(
-                imageUrl: '${ApiService.baseUrl}${photo['url']}',
-                fit: BoxFit.cover,
-                // 🚀 Ограничиваем декодирование в память для сетки
-                memCacheWidth: 300,
-                placeholder: (context, url) => Container(
-                  color: const Color(0xFF1E1E1E),
-                  child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37), strokeWidth: 2)),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              children: [
+                CachedNetworkImage(
+                  imageUrl: '${ApiService.baseUrl}${photo['url']}',
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                  memCacheWidth: 300,
+                  placeholder: (context, url) => Container(
+                    color: const Color(0xFF1E1E1E),
+                    child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37), strokeWidth: 2)),
+                  ),
+                  errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.red),
                 ),
-                errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.red),
-              ),
+                if (widget.isMyProfile)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: GestureDetector(
+                      onTap: () => _deletePhoto(photo['id'], index, albumType),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.delete, color: Colors.redAccent, size: 18),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         );
@@ -266,22 +314,22 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text('Загрузить фото', style: TextStyle(color: Colors.white)),
-        content: const Text('В какой альбом загрузить фото?', style: TextStyle(color: Colors.grey)),
+        title: Text('Загрузить фото', style: GoogleFonts.montserrat(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Text('В какой альбом загрузить фото?', style: GoogleFonts.montserrat(color: Colors.grey)),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _uploadPhoto('public');
             },
-            child: const Text('Публичный', style: TextStyle(color: Color(0xFFD4AF37))),
+            child: Text('ПУБЛИЧНЫЙ', style: GoogleFonts.montserrat(color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _uploadPhoto('private');
             },
-            child: const Text('Приватный 🔒', style: TextStyle(color: Color(0xFFD4AF37))),
+            child: Text('ПРИВАТНЫЙ 🔒', style: GoogleFonts.montserrat(color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -293,15 +341,26 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.black,
-        child: InteractiveViewer(
-          child: CachedNetworkImage(
-            imageUrl: '${ApiService.baseUrl}$photoUrl',
-            fit: BoxFit.contain,
-            // 🚀 Для полного экрана берем размер побольше
-            memCacheWidth: 1200,
-            placeholder: (context, url) => const CircularProgressIndicator(color: Color(0xFFD4AF37)),
-            errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.red),
-          ),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            InteractiveViewer(
+              child: CachedNetworkImage(
+                imageUrl: '${ApiService.baseUrl}$photoUrl',
+                fit: BoxFit.contain,
+                memCacheWidth: 1200,
+                placeholder: (context, url) => const CircularProgressIndicator(color: Color(0xFFD4AF37)),
+                errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.red),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
         ),
       ),
     );

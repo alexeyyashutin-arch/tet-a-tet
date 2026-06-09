@@ -1,7 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:tet_a_tet_app/screens/main_screen.dart';
 import '../services/api_service.dart';
-import 'profile_screen.dart';
 import '../widgets/background_pattern.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -21,9 +23,6 @@ class _LoginScreenState extends State<LoginScreen> {
   String _statusMessage = '';
   bool _isLoading = false;
 
-  final Color _bgColor = const Color(0xFF121212); 
-  final Color _accentColor = const Color(0xFFD4AF37); 
-
   @override
   void initState() {
     super.initState();
@@ -40,7 +39,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // Магия авто-отправки кода!
     _codeController.addListener(() {
-      // Как только ввели 4 цифры — убираем фокус (закрываем клавиатуру) и отправляем запрос
       if (_codeController.text.length == 4) {
         _codeFocusNode.unfocus();
         _handleButtonPress();
@@ -51,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // backgroundColor: _bgColor,
+      backgroundColor: Colors.black,
       body: BackgroundPattern(
         child: SafeArea(
           child: Padding(
@@ -60,84 +58,183 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                const Spacer(flex: 2),
+                
+                // 👑 Логотип
+                Text(
                   'TET-A-TET',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFFD4AF37),
-                    fontSize: 32,
+                  style: GoogleFonts.montserrat(
+                    color: const Color(0xFFD4AF37),
+                    fontSize: 36,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
+                    letterSpacing: 4.0,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Приватные встречи для своих',
+                const SizedBox(height: 12),
+                Text(
+                  'Закрытый клуб свиданий',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
-                ),
-                const SizedBox(height: 60),
-            
-                TextField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                  decoration: InputDecoration(
-                    hintText: '+7 999 123 45 67',
-                    hintStyle: const TextStyle(color: Colors.grey),
-                    prefixIcon: const Icon(Icons.phone_android, color: Color(0xFFD4AF37)),
-                    filled: true,
-                    fillColor: const Color(0xFF1E1E1E),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  style: GoogleFonts.montserrat(
+                    color: Colors.white54,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 2.0,
                   ),
                 ),
+                
+                const Spacer(flex: 3),
+            
+                // 📱 Стеклянное поле ввода телефона
+                ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFFD4AF37).withOpacity(0.5),
+                          width: 1,
+                        ),
+                      ),
+                      child: TextField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        // inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        style: GoogleFonts.montserrat(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: '+7 999 123 45 67',
+                          hintStyle: GoogleFonts.montserrat(color: Colors.white38, fontSize: 16),
+                          prefixIcon: const Icon(Icons.phone_android, color: Color(0xFFD4AF37)),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                
                 const SizedBox(height: 16),
             
+                // 🔢 Стеклянное поле ввода СМС (появляется после отправки кода)
                 if (_isCodeSent)
-                  TextField(
-                    controller: _codeController,
-                    focusNode: _codeFocusNode,
-                    keyboardType: TextInputType.number,
-                    maxLength: 4,
-                    style: const TextStyle(color: Colors.white, fontSize: 24, letterSpacing: 8),
-                    textAlign: TextAlign.center,
-                    decoration: InputDecoration(
-                      hintText: '----',
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      filled: true,
-                      fillColor: const Color(0xFF1E1E1E),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      counterText: '', 
+                  ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFFD4AF37).withOpacity(0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: TextField(
+                          controller: _codeController,
+                          focusNode: _codeFocusNode,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          maxLength: 4,
+                          style: GoogleFonts.montserrat(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 8,
+                          ),
+                          textAlign: TextAlign.center,
+                          decoration: InputDecoration(
+                            hintText: '----',
+                            hintStyle: GoogleFonts.montserrat(color: Colors.white38, fontSize: 24),
+                            border: InputBorder.none,
+                            counterText: '',
+                            contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
+                
                 if (_isCodeSent) const SizedBox(height: 16),
             
+                // ⚠️ Текст ошибки/успеха
                 if (_statusMessage.isNotEmpty)
-                  Text(
-                    _statusMessage,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: _statusMessage.contains('Ошибка') || _statusMessage.contains('Неверный') || _statusMessage.contains('Подождите') 
-                          ? Colors.redAccent 
-                          : Colors.greenAccent
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      _statusMessage,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.montserrat(
+                        color: _statusMessage.contains('Ошибка') || _statusMessage.contains('Неверный') || _statusMessage.contains('Подождите') 
+                            ? Colors.redAccent 
+                            : Colors.greenAccent,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                const SizedBox(height: 32),
-            
-                // Кнопка нужна только на первом этапе. На втором пользователь просто вводит код!
+                
+                // ✨ Золотая кнопка (только на первом этапе)
                 if (!_isCodeSent)
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _handleButtonPress,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _accentColor,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD4AF37),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 8,
+                        shadowColor: const Color(0xFFD4AF37).withOpacity(0.4),
+                      ),
+                      onPressed: _isLoading ? null : _handleButtonPress,
+                      child: _isLoading 
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                            )
+                          : Text(
+                              'ПОЛУЧИТЬ КОД',
+                              style: GoogleFonts.montserrat(
+                                color: Colors.black,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
                     ),
-                    child: _isLoading 
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                        : const Text('Получить код', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
+                
+                const Spacer(flex: 2),
+                
+                // Мелкий текст внизу с подложкой
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.1),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    'Нажимая кнопку, вы соглашаетесь с правилами сервиса',
+                    style: GoogleFonts.montserrat(
+                      color: Colors.white70,
+                      fontSize: 11,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -167,7 +264,6 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() { _isLoading = false; });
       
       if (token != null) {
-        // УРА! Токен получен. Плавно переходим на главный экран и удаляем экран входа из истории
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainScreen()),
@@ -175,8 +271,8 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         setState(() {
           _statusMessage = 'Неверный код или истекло время';
-          _codeController.clear(); // Очищаем поле, чтобы можно было попробовать снова
-          _codeFocusNode.requestFocus(); // Возвращаем фокус
+          _codeController.clear();
+          _codeFocusNode.requestFocus();
         });
       }
     }

@@ -1,13 +1,11 @@
-import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:tet_a_tet_app/screens/albums_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
+import '../widgets/background_pattern.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../widgets/background_pattern.dart';
-import 'meetings_feed_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,13 +17,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _api = ApiService();
   Map<String, dynamic>? _profile;
-  bool _isLoading = true;
   List<dynamic> _myMeetings = [];
-
-  // Переменные для аватарки
-  final ImagePicker _picker = ImagePicker();
-  File? _selectedImage;
-  bool _isUploadingAvatar = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -35,301 +28,306 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final data = await _api.getProfile();
-    final meetings = await _api.getMyMeetings(); // 🆕 Загружаем встречи
+    final meetings = await _api.getMyMeetings();
     
     if (mounted) {
       setState(() {
         _profile = data;
-        _myMeetings = meetings ?? []; // 🆕 Сохраняем их
+        _myMeetings = meetings ?? [];
         _isLoading = false;
       });
     }
   }
 
-  // Метод для выбора и загрузки фото
-  Future<void> _pickAndUploadAvatar() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        _selectedImage = File(image.path);
-        _isUploadingAvatar = true;
-      });
-
-      final success = await _api.uploadAvatar(_selectedImage!);
-      
-      setState(() => _isUploadingAvatar = false);
-
-      if (success) {
-        // После успешной загрузки обновляем профиль, чтобы подтянуть новую ссылку
-        await _loadProfile();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Аватарка успешно обновлена! 😍'), backgroundColor: Colors.green),
-        );
-      } else {
-        setState(() => _selectedImage = null); // Откат, если не удалось
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось загрузить фото'), backgroundColor: Colors.redAccent),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final Color accentColor = const Color(0xFFD4AF37);
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
+      );
+    }
+
+    final username = _profile?['username'] ?? 'Аноним';
+    final age = _profile?['age'];
+    final nameWithAge = age != null ? '$username, $age' : username;
+    final isFemale = _profile?['gender'] == 'female' || _profile?['gender'] == 'ж';
+    final genderIcon = isFemale ? Icons.female : Icons.male;
+    final genderColor = isFemale ? const Color(0xFFEC407A) : const Color(0xFF4FC3F7);
+    final phone = _profile?['phone'] ?? 'Не указан';
 
     return Scaffold(
-      // backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        // backgroundColor: const Color(0xFF121212),
-        elevation: 0,
-        title: const Text(
-          'Мой Профиль',
-          style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, letterSpacing: 1.5),
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.black,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: AppBar(
+              backgroundColor: Colors.black.withOpacity(0.3),
+              elevation: 0,
+              centerTitle: true,
+              title: Text(
+                'ПРОФИЛЬ',
+                style: GoogleFonts.montserrat(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2.0,
+                  fontSize: 16,
+                ),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.white),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditProfileScreen(currentProfile: _profile ?? {}),
+                      ),
+                    ).then((_) => _loadProfile());
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  onPressed: () async {
+                    await _api.logout();
+                    if (mounted) {
+                      // 🆕 Используем pushAndRemoveUntil с MaterialPageRoute
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => const LoginScreen()),
+                        (route) => false, // Удаляем ВСЕ предыдущие маршруты
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit, color: Color(0xFFD4AF37)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditProfileScreen(currentProfile: _profile ?? {}),
-                ),
-              ).then((_) => _loadProfile());
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Color(0xFFD4AF37)),
-            onPressed: () async {
-              // Показываем красивое подтверждение (опционально, но очень по-взрослому)
-              final shouldLogout = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  backgroundColor: const Color(0xFF1E1E1E),
-                  title: const Text('Выход', style: TextStyle(color: Colors.white)),
-                  content: const Text('Вы уверены, что хотите выйти из клуба?', style: TextStyle(color: Colors.grey)),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Отмена', style: TextStyle(color: Colors.grey)),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Выйти', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              );
-    
-              if (shouldLogout == true) {
-                // 1. Удаляем токен
-                await _api.logout();
-                
-                // 2. Возвращаемся на экран входа и очищаем ВСЮ историю навигации!
-                // (чтобы кнопка "Назад" на телефоне не вернула нас обратно в профиль)
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (route) => false, // Удаляем все предыдущие экраны из стека
-                );
-              }
-            },
-          ),
-        ],
       ),
       body: BackgroundPattern(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
-            : _profile == null
-                ? const Center(child: Text('Ошибка загрузки профиля', style: TextStyle(color: Colors.red)))
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      children: [
-                        // 🌟 ИНТЕРАКТИВНАЯ АВАТАРКА 🌟
-                        GestureDetector(
-                          onTap: _isUploadingAvatar ? null : _pickAndUploadAvatar,
-                          child: Stack(
-                            alignment: Alignment.bottomRight,
-                            children: [
-                              CircleAvatar(
-                                radius: 60,
-                                backgroundColor: const Color(0xFF1E1E1E),
-                                backgroundImage: _selectedImage != null 
-                                    ? FileImage(_selectedImage!) as ImageProvider 
-                                    : (_profile!['avatar_url'] != null 
-                                        ? CachedNetworkImageProvider('${ApiService.baseUrl}${_profile!['avatar_url']}')
-                                        : null),
-                                child: _selectedImage == null && _profile!['avatar_url'] == null
-                                    ? const Icon(Icons.person, size: 60, color: Color(0xFFD4AF37))
-                                    : null,
-                              ),
-                              // Иконка камеры поверх аватарки
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFD4AF37),
-                                  shape: BoxShape.circle,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            0, 
+            MediaQuery.of(context).padding.top + kToolbarHeight, 
+            0, 
+            MediaQuery.of(context).padding.bottom + 16,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 👑 БОЛЬШАЯ КВАДРАТНАЯ АВАТАРКА
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24), // Закруглённые углы рамки
+                  child: Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      // 🆕 AspectRatio делает блок идеально квадратным (1 к 1)!
+                      AspectRatio(
+                        aspectRatio: 1.0, 
+                        child: _profile?['avatar_url'] != null // В meeting_detail_screen здесь будет meeting['creator_avatar_url']
+                            ? CachedNetworkImage(
+                                imageUrl: '${ApiService.baseUrl}${_profile!['avatar_url']}', // Или meeting['creator_avatar_url']
+                                fit: BoxFit.cover, // Важно: cover красиво заполнит квадрат, обрезав лишнее по краям
+                                placeholder: (context, url) => Container(
+                                  color: const Color(0xFF1E1E1E),
+                                  child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
                                 ),
-                                child: _isUploadingAvatar
-                                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                                    : const Icon(Icons.camera_alt, color: Colors.black, size: 20),
+                                errorWidget: (context, url, error) => Container(
+                                  color: const Color(0xFF1E1E1E),
+                                  child: const Icon(Icons.person, size: 80, color: Colors.white54),
+                                ),
+                              )
+                            : Container(
+                                color: const Color(0xFF1E1E1E),
+                                child: const Icon(Icons.person, size: 80, color: Colors.white54),
                               ),
+                      ),
+                      // Градиент и текст снизу
+                      Container(
+                        height: 90, // Чуть уменьшил высоту градиента, чтобы на квадратном фото он не перекрывал слишком много лица 😉
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.95),
+                              Colors.black.withOpacity(0.6),
+                              Colors.transparent,
                             ],
                           ),
                         ),
-                        const SizedBox(height: 24),
-            
-                        // Имя
-                        Text(
-                          _profile!['username'] ?? 'Твоё имя',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                        child: Row(
+                          children: [
+                            Icon(genderIcon, color: genderColor, size: 24),
+                            const SizedBox(width: 10),
+                            Text(
+                              nameWithAge,
+                              style: GoogleFonts.montserrat(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-            
-                        // Возраст и пол
-                        Text(
-                          _buildAgeAndGender(),
-                          style: const TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // 📞 Контактная информация (Стеклянная карточка)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'КОНТАКТЫ',
+                        style: GoogleFonts.montserrat(
+                          color: const Color(0xFFD4AF37),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
                         ),
-                        const SizedBox(height: 32),
-            
-                        // Карточка с описанием
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E1E1E),
-                            borderRadius: BorderRadius.circular(16),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Icon(Icons.phone, color: Color(0xFFD4AF37), size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            phone,
+                            style: GoogleFonts.montserrat(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              const SizedBox(height: 32),
+
+              const SizedBox(height: 32),
+
+              // 📦 Архив встреч (разворачивающийся)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Показываем блок, только если есть архивные встречи
+                    if (_myMeetings.where((m) => m['status'] != 'active').isNotEmpty) ...[
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                        ),
+                        child: Theme(
+                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent), // Убираем лишнюю линию разделителя
+                          child: ExpansionTile(
+                            title: Text(
+                              'АРХИВ ВСТРЕЧ', 
+                              style: GoogleFonts.montserrat(
+                                color: Colors.white, 
+                                fontSize: 14, 
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.0,
+                              )
+                            ),
+                            iconColor: const Color(0xFFD4AF37),
+                            collapsedIconColor: const Color(0xFFD4AF37),
                             children: [
-                              const Text(
-                                'О себе',
-                                style: TextStyle(color: Color(0xFFD4AF37), fontSize: 14, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _profile!['bio'] ?? 'Здесь пока пусто. Расскажи о себе, чтобы найти идеальную пару...',
-                                style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.5),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-            
-                        // Номер телефона
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E1E1E),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.phone_android, color: Color(0xFFD4AF37)),
-                              const SizedBox(width: 16),
-                              Text(
-                                _profile!['phone'] ?? '',
-                                style: const TextStyle(color: Colors.white, fontSize: 16),
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
+                                child: Column(
+                                  children: _myMeetings
+                                      .where((m) => m['status'] != 'active')
+                                      .map((m) => _buildArchiveMeetingCard(m))
+                                      .toList(),
+                                ),
                               ),
                             ],
-                          ),
-                        ),
-                      const SizedBox(height: 32),
-                      
-                      // Заголовок секции
-                      const Padding(
-                        padding: EdgeInsets.only(left: 4.0),
-                        child: Text(
-                          'Мои встречи',
-                          style: TextStyle(
-                            color: Color(0xFFD4AF37), 
-                            fontSize: 18, 
-                            fontWeight: FontWeight.bold, 
-                            letterSpacing: 1
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      
-                      //  Активные встречи
-                      ..._myMeetings
-                          .where((m) => m['status'] == 'active')
-                          .map((m) => _buildActiveMeetingCard(m))
-                          .toList(),
-                      
-                      // 📦 Архив (раскрывающийся список)
-                      if (_myMeetings.any((m) => m['status'] != 'active'))
-                        Container(
-                          margin: const EdgeInsets.only(top: 16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E1E1E),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Theme(
-                            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                            child: ExpansionTile(
-                              title: const Text(
-                                'Архив встреч', 
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
-                              ),
-                              trailing: const Icon(Icons.expand_more, color: Color(0xFFD4AF37)),
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
-                                  child: Column(
-                                    children: _myMeetings
-                                        .where((m) => m['status'] != 'active')
-                                        .map((m) => _buildArchiveMeetingCard(m))
-                                        .toList(),
-                                  ),
-                                ),
-                              ],
+                    ] else ...[
+                      // Если архив пуст, просто показываем аккуратную заглушку
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Архив встреч пуст',
+                            style: GoogleFonts.montserrat(
+                              color: Colors.white70,
+                              fontSize: 14,
                             ),
                           ),
-                        ),                        
-                      ],
-                    ),
-                  ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  String _buildAgeAndGender() {
-    final age = _profile?['age'];
-    final gender = _profile?['gender'];
-    
-    String text = '';
-    if (age != null) text += '$age ';
-    if (gender == 'male') text += '• Мужчина';
-    if (gender == 'female') text += '• Женщина';
-    
-    return text.isEmpty ? 'Заполни свой профиль' : text;
-  }
-
-    Widget _buildActiveMeetingCard(Map<String, dynamic> meeting) {
+  // 🃏 Карточка активной встречи (упрощенная и стильная)
+  Widget _buildActiveMeetingCard(Map<String, dynamic> meeting) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: Colors.black.withOpacity(0.3),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             meeting['title'],
-            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            style: GoogleFonts.montserrat(
+              color: Colors.white, 
+              fontSize: 15, 
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           Row(
@@ -338,7 +336,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(width: 6),
               Text(
                 '${meeting['meeting_date']} в ${meeting['meeting_time']}',
-                style: const TextStyle(color: Colors.grey, fontSize: 14),
+                style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 13),
               ),
             ],
           ),
@@ -348,9 +346,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 const Icon(Icons.location_on, color: Color(0xFFD4AF37), size: 16),
                 const SizedBox(width: 6),
-                Text(
-                  meeting['location'],
-                  style: const TextStyle(color: Colors.grey, fontSize: 14),
+                Expanded(
+                  child: Text(
+                    meeting['location'],
+                    style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 13),
+                  ),
                 ),
               ],
             ),
@@ -374,11 +374,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
                 if (confirm == true) {
                   await _api.cancelMeeting(meeting['id'].toString());
-                  _loadProfile(); // Перезагружаем, чтобы обновить список
+                  _loadProfile();
                 }
               },
               icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 18),
-              label: const Text('Отменить', style: TextStyle(color: Colors.redAccent)),
+              label: const Text('Отменить', style: TextStyle(color: Colors.redAccent, fontSize: 13)),
             ),
           ),
         ],
@@ -386,13 +386,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // 📦 Карточка архивной встречи
   Widget _buildArchiveMeetingCard(Map<String, dynamic> meeting) {
     final isCancelled = meeting['status'] == 'cancelled';
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF252525),
+        color: Colors.black.withOpacity(0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -403,17 +404,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(
                   meeting['title'],
-                  style: TextStyle(
+                  style: GoogleFonts.montserrat(
                     color: Colors.grey, 
                     fontSize: 14, 
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     decoration: isCancelled ? TextDecoration.lineThrough : null,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${meeting['meeting_date']} в ${meeting['meeting_time']}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12),
                 ),
               ],
             ),
@@ -423,10 +424,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             decoration: BoxDecoration(
               color: isCancelled ? Colors.redAccent.withOpacity(0.1) : Colors.green.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isCancelled ? Colors.redAccent.withOpacity(0.3) : Colors.green.withOpacity(0.3),
+              ),
             ),
             child: Text(
               isCancelled ? 'Отменена' : 'Завершена',
-              style: TextStyle(
+              style: GoogleFonts.montserrat(
                 color: isCancelled ? Colors.redAccent : Colors.green,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,

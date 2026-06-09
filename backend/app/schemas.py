@@ -104,5 +104,6 @@ class MeetingResponse(BaseModel):
     creator_username: str | None = None
     creator_avatar_url: str | None = None
     creator_age: int | None = None
+    creator_gender: str | None = None
     
     model_config = {"from_attributes": True}
