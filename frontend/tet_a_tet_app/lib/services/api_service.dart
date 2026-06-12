@@ -258,5 +258,106 @@ class ApiService {
     } catch (e) {
       return false;
     }
+  }
+
+  // 💌 Отклик на встречу
+  Future<bool> createResponse(String meetingId, String? message) async {
+    try {
+      final data = {'meeting_id': meetingId};
+      if (message != null && message.isNotEmpty) {
+        data['response_message'] = message;
+      }
+      final response = await _dio.post('/responses/', data: data);
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      print('❌ Ошибка создания отклика: $e');
+      return false;
+    }
+  }
+
+  // 📋 Получить список откликов (только для автора встречи)
+  Future<List<dynamic>?> getMeetingResponses(String meetingId) async {
+    try {
+      final response = await _dio.get('/responses/meeting/$meetingId');
+      return response.data;
+    } on DioException catch (e) {
+      // 🆕 Если 404 — значит пользователь не автор, это нормально!
+      if (e.response?.statusCode == 404) {
+        return []; // Возвращаем пустой список, чтобы FutureBuilder просто ничего не показал
+      }
+      print('❌ Ошибка получения откликов: $e');
+      return null;
+    } catch (e) {
+      print('❌ Общая ошибка получения откликов: $e');
+      return null;
+    }
+  }
+
+  // ✅ Обновить статус отклика (принять/отклонить/подтвердить)
+  Future<bool> updateResponseStatus(String responseId, String status) async {
+    try {
+      // Передаем new_status как query-параметр, как мы настроили на бэкенде
+      final response = await _dio.put('/responses/$responseId/status?new_status=$status');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Ошибка обновления статуса: $e');
+      return false;
+    }
+  }
+
+  // 💬 Отправить сообщение в чат
+  Future<bool> sendMessage(String meetingId, String text) async {
+    try {
+      final response = await _dio.post('/messages/', data: {
+        'meeting_id': meetingId,
+        'text': text,
+      });
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      print('❌ Ошибка отправки сообщения: $e');
+      return false;
+    }
+  }
+
+  // 📜 Получить историю сообщений для встречи
+  Future<List<dynamic>?> getMeetingMessages(String meetingId) async {
+    try {
+      final response = await _dio.get('/messages/meeting/$meetingId');
+      return response.data;
+    } catch (e) {
+      print('❌ Ошибка получения сообщений: $e');
+      return null;
+    }
+  }
+
+  // 🏁 Пометить все входящие сообщения как прочитанные
+  Future<void> markMessagesAsRead(String meetingId) async {
+    try {
+      await _dio.put('/messages/meeting/$meetingId/read');
+    } catch (e) {
+      print('❌ Ошибка пометки сообщений: $e');
+    }
+  }
+
+  // 📋 Получить мои отклики (заявки на чужие встречи)
+  Future<List<dynamic>?> getMyResponses() async {
+    try {
+      final response = await _dio.get('/responses/my');
+      return response.data;
+    } catch (e) {
+      print('❌ Ошибка получения моих откликов: $e');
+      return null;
+    }
+  }
+
+  // 👤 Получить публичный профиль пользователя и его фото по ID
+  Future<Map<String, dynamic>?> getUserById(String userId) async {
+    try {
+      final response = await _dio.get('/users/$userId/public');
+      return response.data;
+    } catch (e) {
+      print('❌ Ошибка получения профиля пользователя: $e');
+      return null;
+    }
   }  
 }

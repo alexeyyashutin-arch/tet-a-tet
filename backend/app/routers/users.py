@@ -1,10 +1,12 @@
 import os
 import uuid
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from datetime import date
+from sqlalchemy import select
 from ..database import get_db
-from ..models import User
+from ..models import User, Photo
 from ..schemas import UserProfile, UserUpdate
 from ..dependencies import get_current_user
 
@@ -63,3 +65,44 @@ async def upload_avatar(
     await db.refresh(current_user)
     
     return current_user
+
+# 🆕 Получить публичный профиль пользователя и его фото по ID
+@router.get("/{user_id}/public")
+async def get_public_user_profile(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    # 1. Ищем пользователя
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    # 2. Считаем возраст
+    age = None
+    if user.birth_date:
+        today = date.today()
+        age = today.year - user.birth_date.year - ((today.month, today.day) < (user.birth_date.month, user.birth_date.day))
+    
+    # 3. Собираем данные пользователя (без чувствительных данных, только публичные)
+    user_data = {
+        "id": str(user.id),
+        "username": user.username,
+        "age": age,
+        "gender": user.gender,
+        "bio": user.bio,
+        "city": user.city,
+        "avatar_url": user.avatar_url,
+    }
+    
+    # 4. Получаем все фотографии пользователя
+    stmt = select(Photo).where(Photo.user_id == user_id).order_by(Photo.created_at.asc())
+    result = await db.execute(stmt)
+    photos = result.scalars().all()
+    
+    photos_data = [{"id": str(p.id), "photo_url": p.photo_url} for p in photos]
+    
+    # 5. Возвращаем красивый структурированный ответ
+    return {
+        "user": user_data,
+        "photos": photos_data
+    }

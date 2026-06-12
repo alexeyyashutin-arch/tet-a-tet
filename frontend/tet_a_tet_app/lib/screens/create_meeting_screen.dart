@@ -1,4 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart'; // Для форматирования даты и времени
 import '../services/api_service.dart';
 import '../widgets/background_pattern.dart';
 
@@ -14,29 +17,27 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
   final _formKey = GlobalKey<FormState>();
   
   final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
+  final _descriptionController = TextEditingController();
   final _wishesController = TextEditingController();
-  final _timeController = TextEditingController(text: '18:00');
   
-  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
-  String _selectedFinance = 'self';
-  bool _isSubmitting = false;
+  DateTime? _selectedDate;
+  TimeOfDay? _selectedTime;
+  bool _isCreating = false;
 
   @override
   void dispose() {
     _titleController.dispose();
-    _descriptionController.dispose();
     _locationController.dispose();
+    _descriptionController.dispose();
     _wishesController.dispose();
-    _timeController.dispose();
     super.dispose();
   }
 
   Future<void> _selectDate() async {
-    final picked = await showDatePicker(
+    final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
@@ -46,7 +47,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
               primary: Color(0xFFD4AF37),
               onPrimary: Colors.black,
               surface: Color(0xFF1E1E1E),
-              onSurface: Colors.white,
             ),
           ),
           child: child!,
@@ -59,9 +59,9 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
   }
 
   Future<void> _selectTime() async {
-    final picked = await showTimePicker(
+    final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay(hour: 18, minute: 0),
+      initialTime: TimeOfDay.now(),
       builder: (context, child) {
         return Theme(
           data: ThemeData.dark().copyWith(
@@ -69,7 +69,6 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
               primary: Color(0xFFD4AF37),
               onPrimary: Colors.black,
               surface: Color(0xFF1E1E1E),
-              onSurface: Colors.white,
             ),
           ),
           child: child!,
@@ -77,44 +76,51 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
       },
     );
     if (picked != null) {
-      setState(() => _timeController.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}');
+      setState(() => _selectedTime = picked);
     }
   }
 
-  Future<void> _submitMeeting() async {
+  Future<void> _createMeeting() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Пожалуйста, выбери дату и время'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
 
-    setState(() => _isSubmitting = true);
+    setState(() => _isCreating = true);
+
+    // Форматируем дату и время для бэкенда
+    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+    // final timeStr = DateFormat('HH:mm').format(DateTime(
+    //   2023, 1, 1, _selectedTime!.hour, _selectedTime!.minute,
+    // ));
 
     final data = {
       'title': _titleController.text.trim(),
-      'description': _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
-      'meeting_date': _selectedDate.toIso8601String().split('T')[0],
-      'meeting_time': _timeController.text.trim(),
-      'location': _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
-      'partner_wishes': _wishesController.text.trim().isEmpty ? null : _wishesController.text.trim(),
-      'finance': _selectedFinance,
+      'meeting_date': dateStr,
+      'meeting_time': _selectedTime != null 
+          ? DateFormat('HH:mm').format(DateTime(2023, 1, 1, _selectedTime!.hour, _selectedTime!.minute)) 
+          : null,
+      'location': _locationController.text.trim().isNotEmpty ? _locationController.text.trim() : null,
+      'description': _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
+      'partner_wishes': _wishesController.text.trim().isNotEmpty ? _wishesController.text.trim() : null,
+      'finance': 'none', // 🆕 Скрываем от пользователя, отправляем дефолтное значение на бэкенд
     };
 
     final success = await _api.createMeeting(data);
-
+    
     if (mounted) {
-      setState(() => _isSubmitting = false);
-      
+      setState(() => _isCreating = false);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Встреча создана! 🎉'),
-            backgroundColor: Colors.green,
-          ),
+          const SnackBar(content: Text('Встреча успешно создана! '), backgroundColor: Colors.green),
         );
         Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Не удалось создать встречу'),
-            backgroundColor: Colors.redAccent,
-          ),
+          const SnackBar(content: Text('Не удалось создать встречу'), backgroundColor: Colors.redAccent),
         );
       }
     }
@@ -123,217 +129,225 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // backgroundColor: const Color(0xFF121212),
-      appBar: AppBar(
-        // backgroundColor: const Color(0xFF121212),
-        elevation: 0,
-        title: const Text(
-          'Новая встреча',
-          style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold),
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.black,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: AppBar(
+              backgroundColor: Colors.black.withOpacity(0.3),
+              elevation: 0,
+              centerTitle: true,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: Text(
+                'НОВАЯ ВСТРЕЧА',
+                style: GoogleFonts.montserrat(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2.0,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // Заголовок
-              TextFormField(
-                controller: _titleController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Что предлагаешь?',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  hintText: 'Хочу поужинать в ресторане...',
-                  hintStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: const Color(0xFF1E1E1E),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                ),
-                validator: (value) => value == null || value.trim().length < 5 ? 'Минимум 5 символов' : null,
-              ),
-              const SizedBox(height: 16),
-        
-              // Описание
-              TextFormField(
-                controller: _descriptionController,
-                style: const TextStyle(color: Colors.white),
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: 'Подробности (необязательно)',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: const Color(0xFF1E1E1E),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                ),
-              ),
-              const SizedBox(height: 16),
-        
-              // Дата и время
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _selectDate,
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E1E1E),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.calendar_today, color: Color(0xFFD4AF37), size: 20),
-                            const SizedBox(width: 12),
-                            Text(
-                              '${_selectedDate.day}.${_selectedDate.month.toString().padLeft(2, '0')}.${_selectedDate.year}',
-                              style: const TextStyle(color: Colors.white, fontSize: 16),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _selectTime,
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E1E1E),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.access_time, color: Color(0xFFD4AF37), size: 20),
-                            const SizedBox(width: 12),
-                            Text(
-                              _timeController.text,
-                              style: const TextStyle(color: Colors.white, fontSize: 16),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-        
-              // Место
-              TextFormField(
-                controller: _locationController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Место встречи',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  hintText: 'Ресторан "Река"',
-                  hintStyle: const TextStyle(color: Colors.grey),
-                  prefixIcon: const Icon(Icons.location_on, color: Color(0xFFD4AF37)),
-                  filled: true,
-                  fillColor: const Color(0xFF1E1E1E),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                ),
-              ),
-              const SizedBox(height: 16),
-        
-              // Пожелания
-              TextFormField(
-                controller: _wishesController,
-                style: const TextStyle(color: Colors.white),
-                maxLines: 2,
-                decoration: InputDecoration(
-                  labelText: 'Пожелания к спутнице',
-                  labelStyle: const TextStyle(color: Colors.grey),
-                  hintText: 'Возраст 25-35, любит искусство...',
-                  hintStyle: const TextStyle(color: Colors.grey),
-                  filled: true,
-                  fillColor: const Color(0xFF1E1E1E),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                ),
-              ),
-              const SizedBox(height: 16),
-        
-              // Финансы
-              const Text(
-                'Финансовые условия',
-                style: TextStyle(color: Color(0xFFD4AF37), fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E1E1E),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
+      body: BackgroundPattern(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            MediaQuery.of(context).padding.top + kToolbarHeight + 16,
+            16,
+            MediaQuery.of(context).padding.bottom + kBottomNavigationBarHeight + 16,
+          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTextField(_titleController, 'Название встречи', Icons.event, maxLines: 1, minLength: 5),
+                const SizedBox(height: 16),
+                
+                // Дата и время в одной строке
+                Row(
                   children: [
-                    _buildFinanceOption('self', '💰 Плачу сам'),
-                    _buildFinanceOption('split', '🤝 Платим поровну'),
-                    _buildFinanceOption('partner', '💎 Платит партнёр'),
-                    _buildFinanceOption('none', '🆓 Бесплатно'),
+                    Expanded(
+                      child: _buildDateButton(),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildTimeButton(),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 32),
-        
-              // Кнопка создания
-              SizedBox(
-                height: 56,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD4AF37),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                const SizedBox(height: 16),
+                
+                _buildTextField(_locationController, 'Место встречи', Icons.location_on, maxLines: 1),
+                const SizedBox(height: 16),
+                
+                _buildTextField(_descriptionController, 'Описание', Icons.description, maxLines: 4),
+                const SizedBox(height: 16),
+                
+                _buildTextField(_wishesController, 'Пожелания к партнеру', Icons.favorite, maxLines: 3, isRequired: false),
+                const SizedBox(height: 32),
+                
+                // Кнопка создания
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD4AF37),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 8,
+                      shadowColor: const Color(0xFFD4AF37).withOpacity(0.4),
+                    ),
+                    onPressed: _isCreating ? null : _createMeeting,
+                    child: _isCreating
+                        ? const SizedBox(
+                            width: 24, height: 24,
+                            child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                          )
+                        : Text(
+                            'СОЗДАТЬ ВСТРЕЧУ',
+                            style: GoogleFonts.montserrat(
+                              color: Colors.black,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
                   ),
-                  onPressed: _isSubmitting ? null : _submitMeeting,
-                  child: _isSubmitting
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                      : const Text(
-                          'Создать встречу',
-                          style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFinanceOption(String value, String text) {
-    final isSelected = _selectedFinance == value;
-    return InkWell(
-      onTap: () => setState(() => _selectedFinance = value),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFD4AF37).withValues(alpha: 0.2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: isSelected ? Border.all(color: const Color(0xFFD4AF37), width: 2) : null,
-        ),
-        child: Row(
-          children: [
-            Radio<String>(
-              value: value,
-              groupValue: _selectedFinance,
-              onChanged: (val) => setState(() => _selectedFinance = val!),
-              activeColor: const Color(0xFFD4AF37),
+  Widget _buildTextField(TextEditingController controller, String hint, IconData icon, {int maxLines = 1, int minLength = 1, bool isRequired = true}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(hint, style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          maxLines: maxLines,
+          style: GoogleFonts.montserrat(color: Colors.white),
+          validator: (value) {
+            // 🆕 Проверяем обязательность только если isRequired == true
+            if (isRequired && (value == null || value.trim().isEmpty)) {
+              return 'Обязательное поле';
+            }
+            // Проверяем длину только если поле не пустое
+            if (value != null && value.trim().isNotEmpty && value.trim().length < minLength) {
+              return 'Минимум $minLength символов';
+            }
+            return null;
+          },
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.montserrat(color: Colors.grey),
+            prefixIcon: Icon(icon, color: const Color(0xFFD4AF37)),
+            filled: true,
+            fillColor: Colors.black.withOpacity(0.3),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12), 
+              borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
             ),
-            Text(
-              text,
-              style: TextStyle(
-                color: isSelected ? const Color(0xFFD4AF37) : Colors.white,
-                fontSize: 16,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12), 
+              borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
             ),
-          ],
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12), 
+              borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 1.5),
+            ),
+            errorStyle: GoogleFonts.montserrat(color: Colors.redAccent, fontSize: 12),
+          ),
         ),
-      ),
+      ],
+    );
+  }
+
+  Widget _buildDateButton() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Дата', style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: _selectDate,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_today, color: Color(0xFFD4AF37), size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _selectedDate != null ? DateFormat('dd.MM.yyyy').format(_selectedDate!) : 'Выбрать дату',
+                    style: GoogleFonts.montserrat(
+                      color: _selectedDate != null ? Colors.white : Colors.grey,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimeButton() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Время', style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: _selectTime,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.access_time, color: Color(0xFFD4AF37), size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _selectedTime != null ? _selectedTime!.format(context) : 'Выбрать время',
+                    style: GoogleFonts.montserrat(
+                      color: _selectedTime != null ? Colors.white : Colors.grey,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

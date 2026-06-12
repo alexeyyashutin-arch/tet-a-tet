@@ -4,6 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../widgets/background_pattern.dart';
+import 'chat_screen.dart';
+import 'user_profile_screen.dart';
 
 class MeetingDetailScreen extends StatelessWidget {
   final Map<String, dynamic> meeting;
@@ -230,6 +232,8 @@ class MeetingDetailScreen extends StatelessWidget {
 
               const SizedBox(height: 40),
 
+              _buildResponsesSection(meeting['id'].toString()),
+
               // 💌 Кнопка отклика
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -243,13 +247,58 @@ class MeetingDetailScreen extends StatelessWidget {
                       elevation: 8,
                       shadowColor: const Color(0xFFD4AF37).withOpacity(0.4),
                     ),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Твой отклик отправлен для $username! Жди ответа 💕'),
-                          backgroundColor: Colors.green,
+                    onPressed: () async {
+                      // 🆕 Показываем красивое окошко для необязательного сообщения
+                      final _api = ApiService();
+                      final TextEditingController msgController = TextEditingController();
+                      final result = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: const Color(0xFF1E1E1E),
+                          title: Text('Откликнуться на встречу', style: GoogleFonts.montserrat(color: Colors.white)),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Хочешь оставить сообщение автору?', style: GoogleFonts.montserrat(color: Colors.grey)),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: msgController,
+                                maxLines: 3,
+                                style: GoogleFonts.montserrat(color: Colors.white),
+                                decoration: InputDecoration(
+                                  hintText: 'Например: Привет! С удовольствием составлю компанию 🍷',
+                                  hintStyle: GoogleFonts.montserrat(color: Colors.grey),
+                                  filled: true,
+                                  fillColor: Colors.black.withOpacity(0.3),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Отмена', style: GoogleFonts.montserrat(color: Colors.grey))),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: Text('Отправить', style: GoogleFonts.montserrat(color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
+                            ),
+                          ],
                         ),
                       );
+
+                      // 🆕 Если нажал "Отправить", вызываем наш API
+                      if (result == true) {
+                        final success = await _api.createResponse(meeting['id'].toString(), msgController.text.trim());
+                        
+                        // 🆕 Используем context.mounted, так как это StatelessWidget
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(success ? 'Твой отклик отправлен! Жди решения 💕' : 'Не удалось отправить отклик'),
+                              backgroundColor: success ? Colors.green : Colors.redAccent,
+                            ),
+                          );
+                        }
+                      }
                     },
                     child: Text(
                       'ОТКЛИКНУТЬСЯ НА ВСТРЕЧУ',
@@ -295,7 +344,211 @@ class MeetingDetailScreen extends StatelessWidget {
     );
   }
 
-  String _getFormattedDateTime(String dateStr, String timeStr) {
+  // 📋 Секция с откликами (видна только автору)
+  Widget _buildResponsesSection(String meetingId) {
+    return FutureBuilder<List<dynamic>?>(
+      future: ApiService().getMeetingResponses(meetingId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox.shrink();
+        }
+        
+        // Если ошибка или пустой список — просто ничего не показываем
+        if (snapshot.hasError || snapshot.data == null || snapshot.data!.isEmpty) {
+          return const SizedBox.shrink(); 
+        }
+        
+        final responses = snapshot.data!;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                'ОТКЛИКИ (${responses.length})',
+                style: GoogleFonts.montserrat(
+                  color: const Color(0xFFD4AF37),
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...responses.map((resp) => _buildResponseCard(context, resp)).toList(),
+          ],
+        );
+      },
+    );
+  }
+
+  // 🃏 Карточка откликнувшегося
+  Widget _buildResponseCard(BuildContext context, Map<String, dynamic> resp) {
+    final username = resp['responder_username'] ?? 'Аноним';
+    final age = resp['responder_age'];
+    final nameWithAge = age != null ? '$username, $age' : username;
+    final message = resp['response_message'];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 👆 ВЕРХНЯЯ ЧАСТЬ: Кликабельная аватарка и имя
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => UserProfileScreen(
+                      userId: resp['user_id'].toString(),
+                    ),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(4.0), // Для эффекта нажатия
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: const Color(0xFFD4AF37).withOpacity(0.2),
+                      child: const Icon(Icons.person, color: Color(0xFFD4AF37)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        nameWithAge,
+                        style: GoogleFonts.montserrat(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline, // Тонкая подсказка, что можно нажать
+                          decorationColor: const Color(0xFFD4AF37).withOpacity(0.5),
+                        ),
+                      ),
+                    ),
+                    // Статус отклика (не кликабельный)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: resp['status'] == 'pending' ? Colors.orange.withOpacity(0.2) : Colors.green.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        resp['status'] == 'pending' ? 'Ждёт' : 'Принят',
+                        style: GoogleFonts.montserrat(
+                          color: resp['status'] == 'pending' ? Colors.orange : Colors.green,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            // Необязательное сообщение от откликнувшегося
+            if (message != null && message.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  message,
+                  style: GoogleFonts.montserrat(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 16),
+            
+            // 👇 НИЖНЯЯ ЧАСТЬ: Кнопки действий (теперь их всего 3, они легко влезут в Row)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: () async {
+                    final success = await ApiService().updateResponseStatus(resp['id'].toString(), 'rejected');
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(success ? 'Отклик отклонен' : 'Не удалось отклонить'),
+                          backgroundColor: success ? Colors.redAccent : Colors.grey,
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.close, color: Colors.redAccent, size: 18),
+                  label: const Text('Отклонить', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final success = await ApiService().updateResponseStatus(resp['id'].toString(), 'accepted');
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(success ? 'Отклик принят! Теперь можно написать 💬' : 'Не удалось принять'),
+                          backgroundColor: success ? Colors.green : Colors.grey,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD4AF37),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.check, size: 18),
+                  label: const Text('Принять', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 8),
+                // 💬 Кнопка "Написать"
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatScreen(
+                          meetingId: meeting['id'].toString(),
+                          meetingTitle: meeting['title'],
+                          opponentName: resp['responder_username'] ?? 'Аноним',
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFFD4AF37), size: 22),
+                  tooltip: 'Написать',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getFormattedDateTime(String dateStr, String? timeStr) {
     final meetingDate = DateTime.parse(dateStr);
     final today = DateTime.now();
     final tomorrow = today.add(const Duration(days: 1));
@@ -308,6 +561,17 @@ class MeetingDetailScreen extends StatelessWidget {
                        meetingDate.month == tomorrow.month && 
                        meetingDate.day == tomorrow.day;
 
+    // 🆕 Если время не указано, показываем только дату
+    if (timeStr == null || timeStr.isEmpty) {
+      if (isToday) return 'Сегодня';
+      if (isTomorrow) return 'Завтра';
+      
+      const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+      final date = DateTime.parse(dateStr);
+      return '${date.day} ${months[date.month - 1]}';
+    }
+
+    // Если время есть, показываем как раньше
     if (isToday) return 'Сегодня в $timeStr';
     if (isTomorrow) return 'Завтра в $timeStr';
     

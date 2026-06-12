@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Boolean, DateTime, Integer, Text, Date, ForeignKey
+from sqlalchemy import Column, String, Boolean, DateTime, Integer, Text, Date, ForeignKey, Float
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from .database import Base
@@ -26,11 +26,16 @@ class User(Base):
     gender = Column(String(20), nullable=True)
     bio = Column(Text, nullable=True)
     avatar_url = Column(String(255), nullable=True)
+    city = Column(String(100), nullable=True)       # Название города (например, "Москва")
+    latitude = Column(Float, nullable=True)         # Широта (например, 55.7558)
+    longitude = Column(Float, nullable=True)        # Долгота (например, 37.6173)
 
     # Связи с фото
     photos = relationship("Photo", back_populates="owner", cascade="all, delete-orphan")
     granted_access = relationship("AlbumAccess", foreign_keys="AlbumAccess.owner_id", back_populates="owner", cascade="all, delete-orphan")
     received_access = relationship("AlbumAccess", foreign_keys="AlbumAccess.granted_to_id", back_populates="granted_to", cascade="all, delete-orphan")
+    meeting_responses = relationship("MeetingResponse", backref="user", cascade="all, delete-orphan")
+    sent_messages = relationship("Message", backref="sender", cascade="all, delete-orphan")
 
 class Photo(Base):
     __tablename__ = "photos"
@@ -66,7 +71,7 @@ class Meeting(Base):
     
     # Дата и время
     meeting_date = Column(Date, nullable=False)
-    meeting_time = Column(String(10), nullable=False)  # "18:00"
+    meeting_time = Column(String(10), nullable=True)  # "18:00"
     
     # Место
     location = Column(String(200), nullable=True)  # "Ресторан Река"
@@ -84,3 +89,34 @@ class Meeting(Base):
     
     # Связь с пользователем
     creator = relationship("User", backref="meetings")
+
+    # 🆕 Добавляем связи для откликов и сообщений
+    responses = relationship("MeetingResponse", backref="meeting", cascade="all, delete-orphan")
+    messages = relationship("Message", backref="meeting", cascade="all, delete-orphan")
+
+class MeetingResponse(Base):
+    __tablename__ = "meeting_responses"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    meeting_id = Column(UUID(as_uuid=True), ForeignKey("meetings.id"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    
+    # Необязательное сообщение при отклике
+    response_message = Column(Text, nullable=True)
+    
+    # Статусы: "pending", "accepted", "rejected", "confirmed"
+    status = Column(String(20), nullable=False, default="pending") 
+    
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    meeting_id = Column(UUID(as_uuid=True), ForeignKey("meetings.id"), nullable=False, index=True)
+    sender_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    
+    text = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)

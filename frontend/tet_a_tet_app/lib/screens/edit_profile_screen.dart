@@ -7,9 +7,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../widgets/background_pattern.dart';
+import 'package:dio/dio.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic> currentProfile;
+  
 
   const EditProfileScreen({super.key, required this.currentProfile});
 
@@ -31,6 +35,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _bioController;
   String? _selectedGender;
   DateTime? _selectedDate;
+  late TextEditingController _cityController;
+  bool _isSearchingCity = false;
+  String? _cityError;
+  Map<String, double>? _cityCoords; // Здесь будем хранить найденные координаты
+  bool _isDetectingLocation = false;
+  String? _locationError;
 
   @override
   void initState() {
@@ -38,6 +48,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _usernameController = TextEditingController(text: widget.currentProfile['username'] ?? '');
     _bioController = TextEditingController(text: widget.currentProfile['bio'] ?? '');
     _selectedGender = widget.currentProfile['gender'];
+    _cityController = TextEditingController(text: widget.currentProfile['city'] ?? '');
+    // Если координаты уже были сохранены, можно их подтянуть, но мы будем искать заново при сохранении
     
     if (widget.currentProfile['birth_date'] != null) {
       _selectedDate = DateTime.parse(widget.currentProfile['birth_date']);
@@ -45,10 +57,49 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } else {
       _dobController = TextEditingController();
     }
+        // 🆕 Автоматически определяем геолокацию через небольшую задержку
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _autoDetectLocation();
+    });
   }
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
+  }
+
+  Future<void> _searchCityCoordinatesSilently() async {
+    final city = _cityController.text.trim();
+    if (city.isEmpty) return;
+
+    try {
+      final dio = Dio();
+      final response = await dio.get(
+        'https://nominatim.openstreetmap.org/search',
+        options: Options(
+          headers: {
+            'User-Agent': 'TetATetApp/1.0 (support@tet-a-tet.app)',
+            'Accept': 'application/json',
+          },
+        ),
+        queryParameters: {
+          'q': city,
+          'format': 'json',
+          'limit': 1,
+          'accept-language': 'ru',
+        },
+      );
+
+      if (response.data.isNotEmpty) {
+        final lat = double.parse(response.data[0]['lat']);
+        final lon = double.parse(response.data[0]['lon']);
+        
+        setState(() {
+          _cityCoords = {'latitude': lat, 'longitude': lon};
+        });
+      }
+    } catch (e) {
+      print('❌ Ошибка поиска координат: $e');
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -137,6 +188,141 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           }
         }
       }
+    }
+  }
+   Future<void> _searchCityCoordinates() async {
+    final city = _cityController.text.trim();
+    if (city.isEmpty) return;
+
+    setState(() {
+      _isSearchingCity = true;
+      _cityError = null;
+      _cityCoords = null;
+    });
+
+    try {
+      // Создаем отдельный Dio для карт (чтобы не конфликтовал с нашим API)
+      final dio = Dio(); 
+      
+      final response = await dio.get(
+        'https://nominatim.openstreetmap.org/search',
+        options: Options(
+          // 🆕 Nominatim требует нормальный User-Agent с email, иначе блокирует!
+          headers: {
+            'User-Agent': 'TetATetApp/1.0 (support@tet-a-tet.app)',
+            'Accept': 'application/json',
+          },
+        ),
+        queryParameters: {
+          'q': city,
+          'format': 'json',
+          'limit': 1,
+          'accept-language': 'ru',
+        },
+      );
+
+      if (response.data.isNotEmpty) {
+        final lat = double.parse(response.data[0]['lat']);
+        final lon = double.parse(response.data[0]['lon']);
+        
+        setState(() {
+          _cityCoords = {'latitude': lat, 'longitude': lon};
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Координаты для $city найдены! 🌍'), backgroundColor: Colors.green),
+        );
+      } else {
+        setState(() => _cityError = 'Город не найден. Попробуйте написать точнее.');
+      }
+    } on DioException catch (e) {
+      //  Ловим именно ошибки Dio, чтобы увидеть статус и ответ сервера
+      print(' Ошибка Dio: ${e.response?.statusCode}');
+      print('❌ Ответ сервера карт: ${e.response?.data}');
+      
+      String errorMsg = 'Ошибка сети';
+      if (e.response?.statusCode == 403) {
+        errorMsg = 'Сервер карт заблокировал запрос. Попробуйте другой город.';
+      } else if (e.response?.statusCode == 429) {
+        errorMsg = 'Слишком много запросов. Подождите минуту.';
+      } else {
+        errorMsg = 'Ошибка сервера: ${e.response?.statusCode}';
+      }
+      setState(() => _cityError = errorMsg);
+    } catch (e) {
+      print('❌ Общая ошибка: $e');
+      setState(() => _cityError = 'Ошибка: $e');
+    } finally {
+      if (mounted) setState(() => _isSearchingCity = false);
+    }
+  }
+
+  Future<void> _autoDetectLocation() async {
+    // Если город уже указан, не перезаписываем
+    if (_cityController.text.isNotEmpty) return;
+
+    setState(() {
+      _isDetectingLocation = true;
+      _locationError = null;
+    });
+
+    try {
+      // 1. Проверяем разрешение на геолокацию
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() => _locationError = 'Разрешение на геолокацию отклонено');
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() => _locationError = 'Разрешение на геолокацию заблокировано');
+        return;
+      }
+
+      // 2. Получаем текущие координаты
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium, // Не нужна сверхточность
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
+
+      // 3. Reverse geocoding: координаты → город
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        final city = placemarks.first.locality ?? placemarks.first.subAdministrativeArea;
+        
+        if (city != null && city.isNotEmpty) {
+          setState(() {
+            _cityController.text = city;
+            _cityCoords = {
+              'latitude': position.latitude,
+              'longitude': position.longitude,
+            };
+          });
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Город определён: $city 📍'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('❌ Ошибка определения геолокации: $e');
+      setState(() => _locationError = 'Не удалось определить местоположение');
+    } finally {
+      if (mounted) setState(() => _isDetectingLocation = false);
     }
   }
 
@@ -344,7 +530,58 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-              
+
+                // 🌍 Поле поиска города
+                Text(
+                  'Город', 
+                  style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _cityController,
+                        style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16),
+                        decoration: InputDecoration(
+                          hintText: 'Например, Москва',
+                          hintStyle: GoogleFonts.montserrat(color: Colors.grey),
+                          prefixIcon: const Icon(Icons.location_city, color: Color(0xFFD4AF37)),
+                          filled: true,
+                          fillColor: Colors.black.withOpacity(0.3),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12), 
+                            borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12), 
+                            borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                          ),
+                          errorText: _cityError,
+                          errorStyle: GoogleFonts.montserrat(color: Colors.redAccent, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Кнопка поиска
+                    SizedBox(
+                      height: 56, // Высота как у текстового поля
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD4AF37),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                        ),
+                        onPressed: _isSearchingCity ? null : _searchCityCoordinates,
+                        child: _isSearchingCity
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                            : const Icon(Icons.search, color: Colors.black),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
                   Text(
                     'Пол', 
                     style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12),
@@ -367,8 +604,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'male', child: Text('Мужской', style: TextStyle(color: Colors.white))),
-                      DropdownMenuItem(value: 'female', child: Text('Женский', style: TextStyle(color: Colors.white))),
+                      DropdownMenuItem(value: 'male', child: Text('Мужской', style: TextStyle(color: Colors.blue))),
+                      DropdownMenuItem(value: 'female', child: Text('Женский', style: TextStyle(color: Colors.redAccent))),
                     ],
                     onChanged: (value) => setState(() => _selectedGender = value),
                   ),
@@ -385,7 +622,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     maxLength: 500,
                     style: GoogleFonts.montserrat(color: Colors.white),
                     decoration: InputDecoration(
-                      hintText: 'Расскажи, что ты ищешь...',
+                      hintText: 'Расскажи о себе...',
                       hintStyle: GoogleFonts.montserrat(color: Colors.grey),
                       filled: true,
                       fillColor: Colors.black.withOpacity(0.3),
@@ -442,11 +679,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
+    // 🆕 Если город указан, но координаты не найдены (или устарели), ищем заново
+    final city = _cityController.text.trim();
+    if (city.isNotEmpty && _cityCoords == null) {
+      try {
+        await _searchCityCoordinatesSilently();
+      } catch (e) {
+        print('Не удалось найти координаты для города: $e');
+      }
+    }
+
     final data = {
       'username': _usernameController.text.trim().isNotEmpty ? _usernameController.text.trim() : null,
       'birth_date': _selectedDate != null ? _formatDate(_selectedDate!).split('.').reversed.join('-') : null,
       'gender': _selectedGender,
       'bio': _bioController.text.trim().isNotEmpty ? _bioController.text.trim() : null,
+      'city': city.isNotEmpty ? city : null,
+      'latitude': _cityCoords?['latitude'],
+      'longitude': _cityCoords?['longitude'],      
     };
 
     final success = await _api.updateProfile(data);
@@ -467,6 +717,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _usernameController.dispose();
     _dobController.dispose();
     _bioController.dispose();
+    _cityController.dispose();
     super.dispose();
   }
 }

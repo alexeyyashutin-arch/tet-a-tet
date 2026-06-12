@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../widgets/background_pattern.dart';
 import 'create_meeting_screen.dart';
 import 'meeting_detail_screen.dart';
+import 'chat_screen.dart';
 
 class MyMeetingsScreen extends StatefulWidget {
   const MyMeetingsScreen({super.key});
@@ -29,14 +30,13 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     
-    // 🆕 Временно загружаем только созданные встречи
     final meetings = await _api.getMyMeetings();
-    // TODO: Добавить getMyResponses() когда будет готов бэкенд для откликов
+    final responses = await _api.getMyResponses(); // 🆕 Загружаем реальные заявки!
     
     if (mounted) {
       setState(() {
         _myMeetings = meetings ?? [];
-        _myResponses = []; // Пока пустой список
+        _myResponses = responses ?? []; //  Подставляем список из API
         _isLoading = false;
       });
     }
@@ -163,15 +163,20 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                 ),
               ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFFD4AF37),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const CreateMeetingScreen()),
-          ).then((_) => _loadData());
-        },
-        child: const Icon(Icons.add, color: Colors.black),
+      floatingActionButton: Padding(
+        // 🆕 Поднимаем кнопку ровно над стеклянным меню
+        padding: const EdgeInsets.only(bottom: 80.0, right: 16.0),
+        child: FloatingActionButton(
+          backgroundColor: const Color(0xFFD4AF37),
+          elevation: 8,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CreateMeetingScreen()),
+            ).then((_) => _loadData());
+          },
+          child: const Icon(Icons.add, color: Colors.black),
+        ),
       ),
     );
   }
@@ -266,9 +271,21 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
 
   // 💌 Карточка заявки на чужую встречу (со стеклом!)
   Widget _buildResponseCard(Map<String, dynamic> response) {
-    final meeting = response['meeting'];
-    final status = response['status'];
-    final formattedDate = _getFormattedDateTime(meeting['meeting_date'], meeting['meeting_time']);
+    final status = response['status'] ?? 'pending';
+    final meetingId = response['meeting_id'];
+    final meetingTitle = response['meeting_title'] ?? 'Название встречи';
+    final meeting = response['meeting']; // 🆕 Полные данные о встрече
+    
+    // 🆕 Достаём данные из объекта meeting
+    final meetingDate = meeting?['meeting_date'];
+    final meetingTime = meeting?['meeting_time'];
+    final meetingLocation = meeting?['location'];
+    
+    // Форматируем дату, если она есть
+    String formattedDate = 'Дата уточняется';
+    if (meetingDate != null) {
+      formattedDate = _getFormattedDateTime(meetingDate, meetingTime);
+    }
     
     final statusColor = _getStatusColor(status);
     final statusText = _getStatusText(status);
@@ -276,9 +293,9 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: ClipRect( // 🆕 Обрезаем размытие
+      child: ClipRect( 
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4), // 🆕 Размытие фона
+          filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4), 
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -293,7 +310,7 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        meeting['title'],
+                        meetingTitle,
                         style: GoogleFonts.montserrat(
                           color: Colors.white,
                           fontSize: 16,
@@ -329,6 +346,7 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                 ),
                 const SizedBox(height: 12),
                 
+                // 🆕 Дата встречи
                 Row(
                   children: [
                     const Icon(Icons.calendar_today, color: Color(0xFFD4AF37), size: 16),
@@ -341,7 +359,9 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                     ),
                   ],
                 ),
-                if (meeting['location'] != null && meeting['location'].toString().isNotEmpty) ...[
+                
+                // 🆕 Место встречи (если есть)
+                if (meetingLocation != null && meetingLocation.toString().isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -349,7 +369,7 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          meeting['location'],
+                          meetingLocation,
                           style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 13),
                         ),
                       ),
@@ -358,16 +378,111 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                 ],
                 
                 const SizedBox(height: 12),
+                
+                // Кнопка подтверждения встречи (появляется, если автор принял заявку)
+                if (status == 'accepted') ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final success = await _api.updateResponseStatus(response['id'].toString(), 'confirmed');
+                        if (mounted && success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Встреча подтверждена! Она исчезнет из общей ленты '), 
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          _loadData();
+                        } else if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Не удалось подтвердить'), backgroundColor: Colors.redAccent),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.check_circle, size: 20),
+                      label: Text(
+                        'ПОДТВЕРДИТЬ ВСТРЕЧУ', 
+                        style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ] else if (status == 'confirmed') ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'ВСТРЕЧА ПОДТВЕРЖДЕНА', 
+                          style: GoogleFonts.montserrat(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                
+                // Кнопка перехода в чат (появляется только если отклик принят или подтвержден)
+                if (status == 'accepted' || status == 'confirmed') ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChatScreen(
+                              meetingId: meetingId.toString(),
+                              meetingTitle: meetingTitle,
+                              opponentName: response['responder_username'] ?? 'Собеседник',
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD4AF37),
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.chat, size: 20),
+                      label: Text(
+                        status == 'confirmed' ? 'ПЕРЕЙТИ В ЧАТ' : 'НАЧАТЬ ОБЩЕНИЕ',
+                        style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+                
+                const SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
+                    // 🆕 Переход на экран деталей встречи
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MeetingDetailScreen(meeting: meeting),
-                        ),
-                      );
+                      if (meeting != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MeetingDetailScreen(meeting: meeting),
+                          ),
+                        );
+                      }
                     },
                     child: Text(
                       'ПОДРОБНЕЕ',
@@ -424,7 +539,7 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
     }
   }
 
-  String _getFormattedDateTime(String dateStr, String timeStr) {
+  String _getFormattedDateTime(String dateStr, String? timeStr) {
     final meetingDate = DateTime.parse(dateStr);
     final today = DateTime.now();
     final tomorrow = today.add(const Duration(days: 1));
@@ -437,6 +552,16 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                        meetingDate.month == tomorrow.month &&
                        meetingDate.day == tomorrow.day;
 
+    // 🆕 Если время не указано, показываем только дату
+    if (timeStr == null || timeStr.isEmpty) {
+      if (isToday) return 'Сегодня';
+      if (isTomorrow) return 'Завтра';
+      
+      const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+      return '${meetingDate.day} ${months[meetingDate.month - 1]}';
+    }
+
+    // Если время есть, показываем как раньше
     if (isToday) return 'Сегодня в $timeStr';
     if (isTomorrow) return 'Завтра в $timeStr';
 

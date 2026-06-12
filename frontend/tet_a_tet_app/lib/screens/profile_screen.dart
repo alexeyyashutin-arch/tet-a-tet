@@ -334,9 +334,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const Icon(Icons.calendar_today, color: Color(0xFFD4AF37), size: 16),
               const SizedBox(width: 6),
-              Text(
-                '${meeting['meeting_date']} в ${meeting['meeting_time']}',
-                style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 13),
+              Expanded(
+                child: Text(
+                  _getFormattedDateTime(meeting['meeting_date'], meeting['meeting_time']),
+                  style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 13),
+                ),
               ),
             ],
           ),
@@ -413,7 +415,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${meeting['meeting_date']} в ${meeting['meeting_time']}',
+                  _getFormattedDateTime(meeting['meeting_date'], meeting['meeting_time']),
                   style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12),
                 ),
               ],
@@ -440,5 +442,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+    String _getFormattedDateTime(String dateStr, String? timeStr) {
+    final meetingDate = DateTime.parse(dateStr);
+    final today = DateTime.now();
+    final tomorrow = today.add(const Duration(days: 1));
+
+    final isToday = meetingDate.year == today.year &&
+                    meetingDate.month == today.month &&
+                    meetingDate.day == today.day;
+
+    final isTomorrow = meetingDate.year == tomorrow.year &&
+                       meetingDate.month == tomorrow.month &&
+                       meetingDate.day == tomorrow.day;
+
+    // 🆕 Если время не указано, показываем только дату
+    if (timeStr == null || timeStr.isEmpty) {
+      if (isToday) return 'Сегодня';
+      if (isTomorrow) return 'Завтра';
+      
+      const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+      return '${meetingDate.day} ${months[meetingDate.month - 1]}';
+    }
+
+    // Если время есть, показываем как раньше
+    if (isToday) return 'Сегодня в $timeStr';
+    if (isTomorrow) return 'Завтра в $timeStr';
+
+    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    return '${meetingDate.day} ${months[meetingDate.month - 1]}, $timeStr';
   }
 }

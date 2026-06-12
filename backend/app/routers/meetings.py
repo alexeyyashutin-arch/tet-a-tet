@@ -74,11 +74,18 @@ async def get_active_meetings(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Получаем все активные встречи, кроме наших
+    # Базовый запрос: берем все активные встречи и джойним с пользователями
     stmt = select(Meeting, User).join(User, Meeting.user_id == User.id).where(
-        Meeting.status == "active",
-        Meeting.user_id != current_user.id
-    ).order_by(Meeting.meeting_date.asc(), Meeting.meeting_time.asc())
+        Meeting.status == "active"
+    )
+    
+    # 🆕 МАГИЯ ФИЛЬТРАЦИИ! 
+    # Если у текущего пользователя указан город, показываем только встречи из этого города.
+    # (Если город не указан, показываем все, чтобы новичок не видел пустую ленту)
+    if current_user.city:
+        stmt = stmt.where(User.city == current_user.city)
+        
+    stmt = stmt.order_by(Meeting.meeting_date.asc(), Meeting.meeting_time.asc())
     
     result = await db.execute(stmt)
     meetings_data = result.all()
@@ -100,7 +107,7 @@ async def get_active_meetings(
             creator_username=user.username,
             creator_avatar_url=user.avatar_url,
             creator_age=calculate_age(user.birth_date),
-            creator_gender=user.gender, 
+            creator_gender=user.gender,
         ))
     
     return meetings

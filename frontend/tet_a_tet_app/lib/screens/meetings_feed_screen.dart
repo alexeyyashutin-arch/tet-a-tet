@@ -225,8 +225,8 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
     );
   }
 
-  // 🆕 Умное форматирование даты
-  String _getFormattedDateTime(String dateStr, String timeStr) {
+  // 🆕 Умное форматирование даты (теперь с поддержкой пустого времени!)
+  String _getFormattedDateTime(String dateStr, String? timeStr) {
     final meetingDate = DateTime.parse(dateStr);
     final today = DateTime.now();
     final tomorrow = today.add(const Duration(days: 1));
@@ -240,6 +240,14 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
                        meetingDate.month == tomorrow.month && 
                        meetingDate.day == tomorrow.day;
 
+    // 🆕 Если время не указано, показываем только дату
+    if (timeStr == null || timeStr.isEmpty) {
+      if (isToday) return 'Сегодня';
+      if (isTomorrow) return 'Завтра';
+      return _formatDate(dateStr);
+    }
+
+    // Если время есть, показываем как раньше
     if (isToday) return 'Сегодня в $timeStr';
     if (isTomorrow) return 'Завтра в $timeStr';
     

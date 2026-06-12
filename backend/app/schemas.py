@@ -35,7 +35,12 @@ class UserProfile(BaseModel):
     gender: str | None = None
     bio: str | None = None
     avatar_url: str | None = None
-    
+
+    # 🆕 Добавляем поля геолокации!
+    city: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+
     # Магия Pydantic v2! Автоматически считаем возраст
     @computed_field
     @property
@@ -55,6 +60,9 @@ class UserUpdate(BaseModel):
     gender: str | None = None
     bio: str | None = Field(None, max_length=500)
     avatar_url: str | None = None
+    city: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
 
 # Схемы для фото
 class PhotoResponse(BaseModel):
@@ -84,7 +92,7 @@ class MeetingCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=200)
     description: str | None = None
     meeting_date: date
-    meeting_time: str = Field(..., pattern=r"^\d{2}:\d{2}$")  # Формат "18:00"
+    meeting_time: str | None = None
     location: str | None = None
     partner_wishes: str | None = None
     finance: str = Field(default="self", pattern=r"^(self|split|partner|none)$")
@@ -95,7 +103,7 @@ class MeetingResponse(BaseModel):
     title: str
     description: str | None
     meeting_date: date
-    meeting_time: str
+    meeting_time: str | None = None
     location: str | None
     partner_wishes: str | None
     finance: str
@@ -105,5 +113,50 @@ class MeetingResponse(BaseModel):
     creator_avatar_url: str | None = None
     creator_age: int | None = None
     creator_gender: str | None = None
+    
+    model_config = {"from_attributes": True}
+
+# --- Схемы для откликов на встречи (Responses) ---
+
+class MeetingResponseCreate(BaseModel):
+    meeting_id: UUID
+    response_message: str | None = None  # 🆕 То самое необязательное сообщение при отклике
+
+class MeetingResponseInfo(BaseModel):
+    id: UUID
+    meeting_id: UUID  # 🆕 ID встречи, чтобы открыть чат
+    meeting_title: str | None = None  # 🆕 Название встречи для карточки
+    meeting: dict | None = None  # 🆕 Полные данные о встрече
+    user_id: UUID
+    status: str  # pending, accepted, rejected, confirmed
+    response_message: str | None = None  #  Сообщение отклика
+    created_at: datetime
+    
+    # 🆕 Данные пользователя, который откликнулся (чтобы автор сразу видел, кто это)
+    responder_username: str | None = None
+    responder_avatar_url: str | None = None
+    responder_age: int | None = None
+    responder_gender: str | None = None
+    
+    model_config = {"from_attributes": True}
+
+
+# --- Схемы для сообщений (Чат) ---
+
+class MessageCreate(BaseModel):
+    meeting_id: UUID
+    text: str = Field(..., min_length=1, max_length=1000)
+
+class MessageResponse(BaseModel):
+    id: UUID
+    meeting_id: UUID
+    sender_id: UUID
+    text: str
+    is_read: bool
+    created_at: datetime
+    
+    #  Данные отправителя (чтобы в чате было понятно, кто написал)
+    sender_username: str | None = None
+    sender_avatar_url: str | None = None
     
     model_config = {"from_attributes": True}

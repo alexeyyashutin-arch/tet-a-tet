@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
 import 'services/api_service.dart';
@@ -71,6 +72,15 @@ class _TetATetAppState extends State<TetATetApp> {
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.black,
       ),
+      localizationsDelegates: const[
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate
+      ],
+      supportedLocales: const[
+        Locale('ru', 'RU'),
+        Locale('en', 'US'),
+      ],
       home: _isLoading
           ? const Scaffold(
               backgroundColor: Colors.black,
