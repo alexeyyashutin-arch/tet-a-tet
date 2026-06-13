@@ -33,7 +33,7 @@ class MeetingDetailScreen extends StatelessWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withOpacity(0.3),
+              backgroundColor: Colors.black.withValues(alpha: 0.3),
               elevation: 0,
               centerTitle: true,
               leading: IconButton(
@@ -56,7 +56,7 @@ class MeetingDetailScreen extends StatelessWidget {
       body: BackgroundPattern(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
-            0, // Сверху 0, так как аватарка будет прилегать к AppBar
+            0,
             MediaQuery.of(context).padding.top + kToolbarHeight,
             0,
             MediaQuery.of(context).padding.bottom + 16,
@@ -68,17 +68,16 @@ class MeetingDetailScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24), // Закруглённые углы рамки
+                  borderRadius: BorderRadius.circular(24),
                   child: Stack(
                     alignment: Alignment.bottomCenter,
                     children: [
-                      // 🆕 AspectRatio делает блок идеально квадратным (1 к 1)!
                       AspectRatio(
                         aspectRatio: 1.0, 
-                        child: meeting['creator_avatar_url'] != null // В meeting_detail_screen здесь будет meeting['creator_avatar_url']
+                        child: meeting['creator_avatar_url'] != null
                             ? CachedNetworkImage(
-                                imageUrl: '${ApiService.baseUrl}${meeting['creator_avatar_url']}', // Или meeting['creator_avatar_url']
-                                fit: BoxFit.cover, // Важно: cover красиво заполнит квадрат, обрезав лишнее по краям
+                                imageUrl: '${ApiService.baseUrl}${meeting['creator_avatar_url']}',
+                                fit: BoxFit.cover,
                                 placeholder: (context, url) => Container(
                                   color: const Color(0xFF1E1E1E),
                                   child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
@@ -93,16 +92,15 @@ class MeetingDetailScreen extends StatelessWidget {
                                 child: const Icon(Icons.person, size: 80, color: Colors.white54),
                               ),
                       ),
-                      // Градиент и текст снизу
                       Container(
-                        height: 90, // Чуть уменьшил высоту градиента, чтобы на квадратном фото он не перекрывал слишком много лица 😉
+                        height: 90,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
                             colors: [
-                              Colors.black.withOpacity(0.95),
-                              Colors.black.withOpacity(0.6),
+                              Colors.black.withValues(alpha: 0.95),
+                              Colors.black.withValues(alpha: 0.6),
                               Colors.transparent,
                             ],
                           ),
@@ -131,7 +129,7 @@ class MeetingDetailScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // 📌 Название встречи (с отступом по бокам)
+              // 📌 Название встречи
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Text(
@@ -147,7 +145,7 @@ class MeetingDetailScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // 📅 Дата, время и место (с отступом по бокам)
+              // 📅 Дата, время и место
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
@@ -212,9 +210,9 @@ class MeetingDetailScreen extends StatelessWidget {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                          border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                         ),
                         child: Text(
                           meeting['partner_wishes'],
@@ -234,83 +232,101 @@ class MeetingDetailScreen extends StatelessWidget {
 
               _buildResponsesSection(meeting['id'].toString()),
 
-              // 💌 Кнопка отклика
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4AF37),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 8,
-                      shadowColor: const Color(0xFFD4AF37).withOpacity(0.4),
-                    ),
-                    onPressed: () async {
-                      // 🆕 Показываем красивое окошко для необязательного сообщения
-                      final _api = ApiService();
-                      final TextEditingController msgController = TextEditingController();
-                      final result = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          backgroundColor: const Color(0xFF1E1E1E),
-                          title: Text('Откликнуться на встречу', style: GoogleFonts.montserrat(color: Colors.white)),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text('Хочешь оставить сообщение автору?', style: GoogleFonts.montserrat(color: Colors.grey)),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: msgController,
-                                maxLines: 3,
-                                style: GoogleFonts.montserrat(color: Colors.white),
-                                decoration: InputDecoration(
-                                  hintText: 'Например: Привет! С удовольствием составлю компанию 🍷',
-                                  hintStyle: GoogleFonts.montserrat(color: Colors.grey),
-                                  filled: true,
-                                  fillColor: Colors.black.withOpacity(0.3),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                              ),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Отмена', style: GoogleFonts.montserrat(color: Colors.grey))),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              child: Text('Отправить', style: GoogleFonts.montserrat(color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
-                            ),
-                          ],
-                        ),
-                      );
+              // 💌 УМНАЯ КНОПКА ОТКЛИКА (скрывается для создателя и тех, кто уже откликнулся)
+              FutureBuilder<Map<String, dynamic>?>(
+                future: ApiService().getProfile(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox.shrink();
+                  }
+                  
+                  final currentUserId = snapshot.data?['id']?.toString();
+                  final isCreator = meeting['creator_id']?.toString() == currentUserId;
+                  final hasResponded = meeting['has_responded'] == true;
 
-                      // 🆕 Если нажал "Отправить", вызываем наш API
-                      if (result == true) {
-                        final success = await _api.createResponse(meeting['id'].toString(), msgController.text.trim());
-                        
-                        // 🆕 Используем context.mounted, так как это StatelessWidget
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(success ? 'Твой отклик отправлен! Жди решения 💕' : 'Не удалось отправить отклик'),
-                              backgroundColor: success ? Colors.green : Colors.redAccent,
+                  print('🔍 [ОТКЛИК] currentUserId: $currentUserId, creator_id: ${meeting['creator_id']}, has_responded: ${meeting['has_responded']}');
+
+                  // 🛡️ Если это создатель встречи ИЛИ он уже откликнулся — скрываем кнопку!
+                  if (isCreator || hasResponded) {
+                    return const SizedBox(height: 20);
+                  }
+
+                  // Иначе показываем кнопку отклика
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD4AF37),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 8,
+                          shadowColor: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+                        ),
+                        onPressed: () async {
+                          final api = ApiService();
+                          final TextEditingController msgController = TextEditingController();
+                          final result = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              backgroundColor: const Color(0xFF1E1E1E),
+                              title: Text('Откликнуться на встречу', style: GoogleFonts.montserrat(color: Colors.white)),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text('Хочешь оставить сообщение автору?', style: GoogleFonts.montserrat(color: Colors.grey)),
+                                  const SizedBox(height: 12),
+                                  TextField(
+                                    controller: msgController,
+                                    maxLines: 3,
+                                    style: GoogleFonts.montserrat(color: Colors.white),
+                                    decoration: InputDecoration(
+                                      hintText: 'Например: Привет! С удовольствием составлю компанию 🍷',
+                                      hintStyle: GoogleFonts.montserrat(color: Colors.grey),
+                                      filled: true,
+                                      fillColor: Colors.black.withValues(alpha: 0.3),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Отмена', style: GoogleFonts.montserrat(color: Colors.grey))),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: Text('Отправить', style: GoogleFonts.montserrat(color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
+                                ),
+                              ],
                             ),
                           );
-                        }
-                      }
-                    },
-                    child: Text(
-                      'ОТКЛИКНУТЬСЯ НА ВСТРЕЧУ',
-                      style: GoogleFonts.montserrat(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
+
+                          if (result == true) {
+                            final success = await api.createResponse(meeting['id'].toString(), msgController.text.trim());
+                            
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(success ? 'Твой отклик отправлен! Жди решения 💕' : 'Не удалось отправить отклик'),
+                                  backgroundColor: success ? Colors.green : Colors.redAccent,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: Text(
+                          'ОТКЛИКНУТЬСЯ НА ВСТРЕЧУ',
+                          style: GoogleFonts.montserrat(
+                            color: Colors.black,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
               const SizedBox(height: 20),
             ],
@@ -353,7 +369,6 @@ class MeetingDetailScreen extends StatelessWidget {
           return const SizedBox.shrink();
         }
         
-        // Если ошибка или пустой список — просто ничего не показываем
         if (snapshot.hasError || snapshot.data == null || snapshot.data!.isEmpty) {
           return const SizedBox.shrink(); 
         }
@@ -377,7 +392,7 @@ class MeetingDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            ...responses.map((resp) => _buildResponseCard(context, resp)).toList(),
+            ...responses.map((resp) => _buildResponseCard(context, resp)),
           ],
         );
       },
@@ -396,14 +411,13 @@ class MeetingDetailScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.3),
+          color: Colors.black.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+          border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 👆 ВЕРХНЯЯ ЧАСТЬ: Кликабельная аватарка и имя
             InkWell(
               onTap: () {
                 Navigator.push(
@@ -417,12 +431,12 @@ class MeetingDetailScreen extends StatelessWidget {
               },
               borderRadius: BorderRadius.circular(12),
               child: Padding(
-                padding: const EdgeInsets.all(4.0), // Для эффекта нажатия
+                padding: const EdgeInsets.all(4.0),
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundColor: const Color(0xFFD4AF37).withOpacity(0.2),
+                      backgroundColor: const Color(0xFFD4AF37).withValues(alpha: 0.2),
                       child: const Icon(Icons.person, color: Color(0xFFD4AF37)),
                     ),
                     const SizedBox(width: 12),
@@ -433,16 +447,15 @@ class MeetingDetailScreen extends StatelessWidget {
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline, // Тонкая подсказка, что можно нажать
-                          decorationColor: const Color(0xFFD4AF37).withOpacity(0.5),
+                          decoration: TextDecoration.underline,
+                          decorationColor: const Color(0xFFD4AF37).withValues(alpha: 0.5),
                         ),
                       ),
                     ),
-                    // Статус отклика (не кликабельный)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: resp['status'] == 'pending' ? Colors.orange.withOpacity(0.2) : Colors.green.withOpacity(0.2),
+                        color: resp['status'] == 'pending' ? Colors.orange.withValues(alpha: 0.2) : Colors.green.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -459,14 +472,13 @@ class MeetingDetailScreen extends StatelessWidget {
               ),
             ),
             
-            // Необязательное сообщение от откликнувшегося
             if (message != null && message.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -482,48 +494,94 @@ class MeetingDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 16),
             
-            // 👇 НИЖНЯЯ ЧАСТЬ: Кнопки действий (теперь их всего 3, они легко влезут в Row)
+            // 👇 НИЖНЯЯ ЧАСТЬ: Кнопки действий
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton.icon(
-                  onPressed: () async {
-                    final success = await ApiService().updateResponseStatus(resp['id'].toString(), 'rejected');
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(success ? 'Отклик отклонен' : 'Не удалось отклонить'),
-                          backgroundColor: success ? Colors.redAccent : Colors.grey,
-                        ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.close, color: Colors.redAccent, size: 18),
-                  label: const Text('Отклонить', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final success = await ApiService().updateResponseStatus(resp['id'].toString(), 'accepted');
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(success ? 'Отклик принят! Теперь можно написать 💬' : 'Не удалось принять'),
-                          backgroundColor: success ? Colors.green : Colors.grey,
-                        ),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD4AF37),
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                // 🆕 Показываем кнопки "Отклонить" и "Принять" ТОЛЬКО если статус "pending"
+                if (resp['status'] == 'pending') ...[
+                  TextButton.icon(
+                    onPressed: () async {
+                      final success = await ApiService().updateResponseStatus(resp['id'].toString(), 'rejected');
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(success ? 'Отклик отклонен' : 'Не удалось отклонить'),
+                            backgroundColor: success ? Colors.redAccent : Colors.grey,
+                          ),
+                        );
+                        // 🆕 Мгновенное обновление экрана после действия
+                        Navigator.pop(context);
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => MeetingDetailScreen(meeting: meeting)),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.close, color: Colors.redAccent, size: 18),
+                    label: const Text('Отклонить', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
                   ),
-                  icon: const Icon(Icons.check, size: 18),
-                  label: const Text('Принять', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(width: 8),
-                // 💬 Кнопка "Написать"
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final success = await ApiService().updateResponseStatus(resp['id'].toString(), 'accepted');
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(success ? 'Отклик принят! Теперь можно написать 💬' : 'Не удалось принять'),
+                            backgroundColor: success ? Colors.green : Colors.grey,
+                          ),
+                        );
+                        // 🆕 Мгновенное обновление экрана после действия
+                        Navigator.pop(context);
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => MeetingDetailScreen(meeting: meeting)),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD4AF37),
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.check, size: 18),
+                    label: const Text('Принять', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 8),
+                ] else ...[
+                  // 🆕 Если уже принято или подтверждено, показываем красивый бейдж вместо кнопок
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: (resp['status'] == 'accepted' ? Colors.green : Colors.blue).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: (resp['status'] == 'accepted' ? Colors.green : Colors.blue).withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          resp['status'] == 'accepted' ? Icons.check_circle : Icons.verified,
+                          color: resp['status'] == 'accepted' ? Colors.green : Colors.blue,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          resp['status'] == 'accepted' ? 'Принято' : 'Подтверждено',
+                          style: GoogleFonts.montserrat(
+                            color: resp['status'] == 'accepted' ? Colors.green : Colors.blue,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                
+                // 💬 Кнопка "Написать" (видна всегда, чтобы автор мог начать чат)
                 IconButton(
                   onPressed: () {
                     Navigator.push(
@@ -561,7 +619,6 @@ class MeetingDetailScreen extends StatelessWidget {
                        meetingDate.month == tomorrow.month && 
                        meetingDate.day == tomorrow.day;
 
-    // 🆕 Если время не указано, показываем только дату
     if (timeStr == null || timeStr.isEmpty) {
       if (isToday) return 'Сегодня';
       if (isTomorrow) return 'Завтра';
@@ -571,7 +628,6 @@ class MeetingDetailScreen extends StatelessWidget {
       return '${date.day} ${months[date.month - 1]}';
     }
 
-    // Если время есть, показываем как раньше
     if (isToday) return 'Сегодня в $timeStr';
     if (isTomorrow) return 'Завтра в $timeStr';
     

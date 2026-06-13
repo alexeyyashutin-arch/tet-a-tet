@@ -33,11 +33,11 @@ async def send_message(
     # Является ли текущий пользователь автором встречи?
     is_author = meeting.user_id == current_user.id
     
-    # Откликался ли пользователь и был ли принят?
+    # Откликался ли пользователь (разрешаем писать, если есть хотя бы отклик pending)
     stmt = select(MeetingResponse).where(
         MeetingResponse.meeting_id == data.meeting_id,
         MeetingResponse.user_id == current_user.id,
-        MeetingResponse.status.in_(["accepted", "confirmed"])
+        MeetingResponse.status.in_(["pending", "accepted", "confirmed"]) # 🆕 ДОЛЖНО БЫТЬ 'pending'!
     )
     result = await db.execute(stmt)
     response = result.scalar_one_or_none()
@@ -85,7 +85,7 @@ async def get_meeting_messages(
     stmt = select(MeetingResponse).where(
         MeetingResponse.meeting_id == meeting_id,
         MeetingResponse.user_id == current_user.id,
-        MeetingResponse.status.in_(["accepted", "confirmed"])
+        MeetingResponse.status.in_(["pending", "accepted", "confirmed"]) # 🆕 Добавили 'pending'!
     )
     result = await db.execute(stmt)
     response = result.scalar_one_or_none()
@@ -138,3 +138,74 @@ async def mark_messages_as_read(
     
     await db.commit()
     return {"message": f"Помечено как прочитано: {len(messages)} сообщений"}
+
+# 4. Получить список всех моих чатов
+@router.get("/my", response_model=List[dict])
+async def get_my_chats(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    # Находим все встречи, где текущий пользователь либо автор, либо откликнулся (и статус accepted/confirmed)
+    
+    # 1. Встречи, где я автор
+    stmt = select(Meeting).where(Meeting.user_id == current_user.id)
+    result = await db.execute(stmt)
+    my_meetings_as_author = result.scalars().all()
+    
+    # 2. Встречи, где я откликнулся и меня приняли
+    stmt = select(Meeting).join(MeetingResponse).where(
+        MeetingResponse.user_id == current_user.id,
+        MeetingResponse.status.in_(["pending","accepted", "confirmed"])
+    )
+    result = await db.execute(stmt)
+    my_meetings_as_responder = result.scalars().all()
+    
+    # Объединяем (убираем дубликаты)
+    all_meetings = {m.id: m for m in my_meetings_as_author + my_meetings_as_responder}.values()
+    
+    chats = []
+    for meeting in all_meetings:
+        # Получаем последнее сообщение
+        stmt = select(Message).where(Message.meeting_id == meeting.id).order_by(Message.created_at.desc()).limit(1)
+        result = await db.execute(stmt)
+        last_message = result.scalar_one_or_none()
+        
+        # Получаем имя собеседника
+        if meeting.user_id == current_user.id:
+            # Я автор, собеседник — тот, кто откликнулся (берем первого с любым активным статусом)
+            stmt = select(User).join(MeetingResponse).where(
+                MeetingResponse.meeting_id == meeting.id,
+                MeetingResponse.status.in_(["pending", "accepted", "confirmed"]) # 🆕 Добавили 'pending'!
+            ).limit(1)
+            result = await db.execute(stmt)
+            opponent = result.scalar_one_or_none()
+        else:
+            # Я откликнувшийся, собеседник — автор встречи
+            opponent = await db.get(User, meeting.user_id)
+        
+        opponent_name = opponent.username if opponent else "Собеседник"
+        opponent_avatar = opponent.avatar_url if opponent else None
+        
+        # Считаем количество непрочитанных
+        stmt = select(Message).where(
+            Message.meeting_id == meeting.id,
+            Message.sender_id != current_user.id,
+            Message.is_read == False
+        )
+        result = await db.execute(stmt)
+        unread_count = len(result.scalars().all())
+        
+        chats.append({
+            "meeting_id": str(meeting.id),
+            "meeting_title": meeting.title,
+            "opponent_name": opponent_name,
+            "opponent_avatar_url": opponent_avatar,
+            "last_message": last_message.text if last_message else None,
+            "last_message_time": last_message.created_at.isoformat() if last_message else None,
+            "unread_count": unread_count
+        })
+    
+    # Сортируем по времени последнего сообщения (самые свежие сверху)
+    chats.sort(key=lambda x: x['last_message_time'] or '', reverse=True)
+    
+    return chats

@@ -37,16 +37,14 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _initChat() async {
-    // 1. Получаем ID текущего пользователя, чтобы понимать, свои ли это сообщения
     final profile = await _api.getProfile();
     if (profile != null && mounted) {
       _myUserId = profile['id'];
     }
     
-    // 2. Загружаем историю
     await _loadMessages();
     
-    // 3. Помечаем входящие как прочитанные
+    print('✅ [ЧАТ] Сообщения загружены, сейчас пометим как прочитанные...'); // 🆕
     if (mounted) {
       await _api.markMessagesAsRead(widget.meetingId);
     }
@@ -55,6 +53,9 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _loadMessages() async {
     setState(() => _isLoading = true);
     final msgs = await _api.getMeetingMessages(widget.meetingId);
+    
+    print('🔍 [ЧАТ] Загруженные сообщения для встречи ${widget.meetingId}: $msgs'); // 🆕 СМОТРИМ, ЧТО ПРИШЛО
+    
     if (mounted) {
       setState(() {
         _messages = msgs ?? [];
@@ -102,7 +103,7 @@ class _ChatScreenState extends State<ChatScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withOpacity(0.3),
+              backgroundColor: Colors.black.withValues(alpha: 0.3),
               elevation: 0,
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -157,8 +158,8 @@ class _ChatScreenState extends State<ChatScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
-                border: Border(top: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3))),
+                color: Colors.black.withValues(alpha: 0.5),
+                border: Border(top: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3))),
               ),
               child: Row(
                 children: [
@@ -170,7 +171,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         hintText: 'Сообщение...',
                         hintStyle: GoogleFonts.montserrat(color: Colors.grey),
                         filled: true,
-                        fillColor: Colors.black.withOpacity(0.3),
+                        fillColor: Colors.black.withValues(alpha: 0.3),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20), 
                           borderSide: BorderSide.none,
@@ -211,12 +212,12 @@ class _ChatScreenState extends State<ChatScreen> {
         constraints: const BoxConstraints(maxWidth: 280),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isMe ? const Color(0xFFD4AF37) : Colors.black.withOpacity(0.4),
+          color: isMe ? const Color(0xFFD4AF37) : Colors.black.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(16).copyWith(
             bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(16),
             bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(4),
           ),
-          border: isMe ? null : Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+          border: isMe ? null : Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,

@@ -74,7 +74,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withOpacity(0.3),
+              backgroundColor: Colors.black.withValues(alpha: 0.3),
               elevation: 0,
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -120,7 +120,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           gradient: LinearGradient(
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
-                            colors: [Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.6), Colors.transparent],
+                            colors: [Colors.black.withValues(alpha: 0.95), Colors.black.withValues(alpha: 0.6), Colors.transparent],
                           ),
                         ),
                         padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
@@ -181,7 +181,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3))),
+                        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3))),
                         child: Center(child: Text('Альбом пуст', style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 14))),
                       )
                     else

@@ -65,7 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withOpacity(0.3),
+              backgroundColor: Colors.black.withValues(alpha: 0.3),
               elevation: 0,
               centerTitle: true,
               title: Text(
@@ -155,8 +155,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
                             colors: [
-                              Colors.black.withOpacity(0.95),
-                              Colors.black.withOpacity(0.6),
+                              Colors.black.withValues(alpha: 0.95),
+                              Colors.black.withValues(alpha: 0.6),
                               Colors.transparent,
                             ],
                           ),
@@ -192,9 +192,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                    border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,9 +244,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     if (_myMeetings.where((m) => m['status'] != 'active').isNotEmpty) ...[
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                          border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                         ),
                         child: Theme(
                           data: Theme.of(context).copyWith(dividerColor: Colors.transparent), // Убираем лишнюю линию разделителя
@@ -282,9 +282,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                          border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                         ),
                         child: Center(
                           child: Text(
@@ -314,9 +314,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
+        color: Colors.black.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
+        border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,7 +395,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.2),
+        color: Colors.black.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -424,10 +424,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: isCancelled ? Colors.redAccent.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+              color: isCancelled ? Colors.redAccent.withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isCancelled ? Colors.redAccent.withOpacity(0.3) : Colors.green.withOpacity(0.3),
+                color: isCancelled ? Colors.redAccent.withValues(alpha: 0.3) : Colors.green.withValues(alpha: 0.3),
               ),
             ),
             child: Text(

@@ -359,5 +359,16 @@ class ApiService {
       print('❌ Ошибка получения профиля пользователя: $e');
       return null;
     }
+  }
+
+  // 💬 Получить список всех моих чатов
+  Future<List<dynamic>?> getMyChats() async {
+    try {
+      final response = await _dio.get('/messages/my');
+      return response.data;
+    } catch (e) {
+      print('❌ Ошибка получения списка чатов: $e');
+      return null;
+    }
   }  
 }

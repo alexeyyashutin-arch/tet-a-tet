@@ -100,6 +100,7 @@ class MeetingCreate(BaseModel):
 class MeetingResponse(BaseModel):
     id: UUID
     user_id: UUID
+    creator_id:UUID | None = None
     title: str
     description: str | None
     meeting_date: date
@@ -113,7 +114,9 @@ class MeetingResponse(BaseModel):
     creator_avatar_url: str | None = None
     creator_age: int | None = None
     creator_gender: str | None = None
-    
+    responses_count: int = 0  # 🆕 Добавляем поле для количества откликов (с дефолтом 0)
+    has_responded: bool = False  # 🆕 Откликнулся ли текущий пользователь на эту встречу
+
     model_config = {"from_attributes": True}
 
 # --- Схемы для откликов на встречи (Responses) ---

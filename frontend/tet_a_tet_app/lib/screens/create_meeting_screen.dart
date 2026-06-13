@@ -137,7 +137,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withOpacity(0.3),
+              backgroundColor: Colors.black.withValues(alpha: 0.3),
               elevation: 0,
               centerTitle: true,
               leading: IconButton(
@@ -205,7 +205,7 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
                       backgroundColor: const Color(0xFFD4AF37),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       elevation: 8,
-                      shadowColor: const Color(0xFFD4AF37).withOpacity(0.4),
+                      shadowColor: const Color(0xFFD4AF37).withValues(alpha: 0.4),
                     ),
                     onPressed: _isCreating ? null : _createMeeting,
                     child: _isCreating
@@ -259,14 +259,14 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
             hintStyle: GoogleFonts.montserrat(color: Colors.grey),
             prefixIcon: Icon(icon, color: const Color(0xFFD4AF37)),
             filled: true,
-            fillColor: Colors.black.withOpacity(0.3),
+            fillColor: Colors.black.withValues(alpha: 0.3),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12), 
-              borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+              borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12), 
-              borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+              borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12), 
@@ -290,9 +290,9 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+              border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
@@ -326,9 +326,9 @@ class _CreateMeetingScreenState extends State<CreateMeetingScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+              border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [

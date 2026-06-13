@@ -95,11 +95,15 @@ async def get_public_user_profile(
     }
     
     # 4. Получаем все фотографии пользователя
-    stmt = select(Photo).where(Photo.user_id == user_id).order_by(Photo.created_at.asc())
+        # 🆕 Показываем только публичные фото (приватные — только владельцу!)
+    stmt = select(Photo).where(
+        Photo.user_id == user_id,
+        Photo.album_type == "public"  # 🛡️ Защита приватности
+    ).order_by(Photo.id.asc())
     result = await db.execute(stmt)
     photos = result.scalars().all()
     
-    photos_data = [{"id": str(p.id), "photo_url": p.photo_url} for p in photos]
+    photos_data = [{"id": str(p.id), "photo_url": p.url} for p in photos] # 🆕 Используем правильное имя поля
     
     # 5. Возвращаем красивый структурированный ответ
     return {

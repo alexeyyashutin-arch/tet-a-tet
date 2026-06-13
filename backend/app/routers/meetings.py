@@ -2,12 +2,12 @@ import uuid
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from typing import List
 
 from ..database import get_db
-from ..models import User, Meeting
-from ..schemas import MeetingCreate, MeetingResponse
+from ..models import User, Meeting, MeetingResponse as MeetingResponseModel # 🆕 Модель БД с псевдонимом!
+from ..schemas import MeetingCreate, MeetingResponse # Схема для ответа остаётся как есть
 from ..dependencies import get_current_user
 
 router = APIRouter(prefix="/meetings", tags=["Встречи"])
@@ -92,9 +92,18 @@ async def get_active_meetings(
     
     meetings = []
     for meeting, user in meetings_data:
+        # 🆕 Проверяем, откликнулся ли текущий пользователь на эту конкретную встречу
+        resp_stmt = select(MeetingResponseModel).where(
+            MeetingResponseModel.meeting_id == meeting.id,
+            MeetingResponseModel.user_id == current_user.id
+        )
+        resp_result = await db.execute(resp_stmt)
+        has_responded = resp_result.scalar_one_or_none() is not None
+
         meetings.append(MeetingResponse(
             id=meeting.id,
             user_id=meeting.user_id,
+            creator_id=meeting.user_id,
             title=meeting.title,
             description=meeting.description,
             meeting_date=meeting.meeting_date,
@@ -108,6 +117,7 @@ async def get_active_meetings(
             creator_avatar_url=user.avatar_url,
             creator_age=calculate_age(user.birth_date),
             creator_gender=user.gender,
+            has_responded=has_responded,  # 🆕 Передаём флаг во фронтенд
         ))
     
     return meetings
@@ -124,10 +134,17 @@ async def get_my_meetings(
     result = await db.execute(stmt)
     meetings = result.scalars().all()
     
-    return [
-        MeetingResponse(
+    response_list = []
+    for m in meetings:
+        # 🆕 Эффективно считаем количество откликов прямо в базе данных (не загружая их все в память!)
+        count_stmt = select(func.count(MeetingResponseModel.id)).where(MeetingResponseModel.meeting_id == m.id)
+        count_result = await db.execute(count_stmt)
+        responses_count = count_result.scalar() or 0
+        
+        response_list.append(MeetingResponse(
             id=m.id,
             user_id=m.user_id,
+            creator_id=m.user_id,
             title=m.title,
             description=m.description,
             meeting_date=m.meeting_date,
@@ -140,10 +157,12 @@ async def get_my_meetings(
             creator_username=current_user.username,
             creator_avatar_url=current_user.avatar_url,
             creator_age=calculate_age(current_user.birth_date),
-            creator_gender=current_user.gender, 
-        )
-        for m in meetings
-    ]
+            creator_gender=current_user.gender,
+            responses_count=responses_count,  # 🆕 Передаём посчитанное значение
+            has_responded=True,
+        ))
+    
+    return response_list
 
 @router.delete("/{meeting_id}")
 async def cancel_meeting(

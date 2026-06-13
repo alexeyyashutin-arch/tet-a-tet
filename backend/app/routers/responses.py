@@ -163,6 +163,12 @@ async def get_my_responses(
             today = date.today()
             age = today.year - creator.birth_date.year - ((today.month, today.day) < (creator.birth_date.month, creator.birth_date.day))
 
+        # 🆕 Проверяем, есть ли сообщения в чате
+        from ..models import Message
+        stmt = select(Message).where(Message.meeting_id == meeting.id).limit(1)
+        result = await db.execute(stmt)
+        has_messages = result.scalar_one_or_none() is not None
+        
         # 🆕 Добавляем полные данные о встрече
         meeting_data = {
             'id': str(meeting.id),
@@ -179,6 +185,8 @@ async def get_my_responses(
             'creator_age': age,
             'creator_gender': creator.gender,
             'creator_avatar_url': creator.avatar_url,
+            'has_messages': has_messages,  # 🆕 Есть ли сообщения в чате
+            'has_responded': True, 
         }
 
         responses.append(MeetingResponseInfo(

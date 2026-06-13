@@ -346,7 +346,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withOpacity(0.3),
+              backgroundColor: Colors.black.withValues(alpha: 0.3),
               elevation: 0,
               centerTitle: true,
               leading: IconButton(
@@ -440,8 +440,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   begin: Alignment.bottomCenter,
                                   end: Alignment.topCenter,
                                   colors: [
-                                    Colors.black.withOpacity(0.95),
-                                    Colors.black.withOpacity(0.6),
+                                    Colors.black.withValues(alpha: 0.95),
+                                    Colors.black.withValues(alpha: 0.6),
                                     Colors.transparent,
                                   ],
                                 ),
@@ -476,7 +476,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.4),
+                                      color: Colors.black.withValues(alpha: 0.4),
                                       blurRadius: 8,
                                     ),
                                   ],
@@ -518,14 +518,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       prefixIcon: const Icon(Icons.cake, color: Color(0xFFD4AF37)),
                       suffixIcon: const Icon(Icons.calendar_today, color: Colors.grey),
                       filled: true,
-                      fillColor: Colors.black.withOpacity(0.3),
+                      fillColor: Colors.black.withValues(alpha: 0.3),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12), 
-                        borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                        borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12), 
-                        borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                        borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                       ),
                     ),
                   ),
@@ -548,14 +548,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           hintStyle: GoogleFonts.montserrat(color: Colors.grey),
                           prefixIcon: const Icon(Icons.location_city, color: Color(0xFFD4AF37)),
                           filled: true,
-                          fillColor: Colors.black.withOpacity(0.3),
+                          fillColor: Colors.black.withValues(alpha: 0.3),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12), 
-                            borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                            borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12), 
-                            borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                            borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                           ),
                           errorText: _cityError,
                           errorStyle: GoogleFonts.montserrat(color: Colors.redAccent, fontSize: 12),
@@ -588,19 +588,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: _selectedGender,
+                    initialValue: _selectedGender,
                     dropdownColor: const Color(0xFF1E1E1E),
                     style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16),
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: Colors.black.withOpacity(0.3),
+                      fillColor: Colors.black.withValues(alpha: 0.3),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12), 
-                        borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                        borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12), 
-                        borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                        borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                       ),
                     ),
                     items: const [
@@ -625,14 +625,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       hintText: 'Расскажи о себе...',
                       hintStyle: GoogleFonts.montserrat(color: Colors.grey),
                       filled: true,
-                      fillColor: Colors.black.withOpacity(0.3),
+                      fillColor: Colors.black.withValues(alpha: 0.3),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12), 
-                        borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                        borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12), 
-                        borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                        borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                       ),
                     ),
                   ),
@@ -660,14 +660,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             hintStyle: GoogleFonts.montserrat(color: Colors.grey),
             prefixIcon: Icon(icon, color: const Color(0xFFD4AF37)),
             filled: true,
-            fillColor: Colors.black.withOpacity(0.3),
+            fillColor: Colors.black.withValues(alpha: 0.3),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12), 
-              borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+              borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12), 
-              borderSide: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+              borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
             ),
           ),
         ),

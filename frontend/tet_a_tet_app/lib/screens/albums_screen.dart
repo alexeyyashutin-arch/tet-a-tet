@@ -158,7 +158,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withOpacity(0.3),
+              backgroundColor: Colors.black.withValues(alpha: 0.3),
               elevation: 0,
               centerTitle: true,
               title: Text(
@@ -294,7 +294,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
+                          color: Colors.black.withValues(alpha: 0.6),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.delete, color: Colors.redAccent, size: 18),
