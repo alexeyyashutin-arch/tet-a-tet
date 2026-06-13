@@ -6,11 +6,13 @@ backend/*.pyc
 backend/.env
 backend/firebase/serviceAccountKey.json
 
+
 # --- Flutter / Frontend ---
 frontend/tet_a_tet_app/build/
 frontend/tet_a_tet_app/.dart_tool/
 frontend/tet_a_tet_app/.packages
 frontend/tet_a_tet_app/pubspec.lock # Можно не игнорировать, но для начала пусть будет тут, если захочешь менять зависимости локально
+frontend/tet_a_tet_app/firebase_options.dart
 
 # --- IDE и ОС ---
 .vscode/
