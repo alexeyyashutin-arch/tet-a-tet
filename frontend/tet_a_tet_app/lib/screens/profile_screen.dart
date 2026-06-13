@@ -18,6 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _api = ApiService();
   Map<String, dynamic>? _profile;
   List<dynamic> _myMeetings = [];
+  List<dynamic> _archivedResponses = []; // 🆕 Архивные заявки
   bool _isLoading = true;
 
   @override
@@ -29,11 +30,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadProfile() async {
     final data = await _api.getProfile();
     final meetings = await _api.getMyMeetings();
+    final archived = await _api.getMyArchivedResponses(); // 🆕 Загружаем архивные заявки
     
     if (mounted) {
       setState(() {
         _profile = data;
         _myMeetings = meetings ?? [];
+        _archivedResponses = archived ?? []; // 🆕
         _isLoading = false;
       });
     }
@@ -94,10 +97,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: () async {
                     await _api.logout();
                     if (mounted) {
-                      // 🆕 Используем pushAndRemoveUntil с MaterialPageRoute
                       Navigator.of(context).pushAndRemoveUntil(
                         MaterialPageRoute(builder: (context) => const LoginScreen()),
-                        (route) => false, // Удаляем ВСЕ предыдущие маршруты
+                        (route) => false,
                       );
                     }
                   },
@@ -122,17 +124,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24), // Закруглённые углы рамки
+                  borderRadius: BorderRadius.circular(24),
                   child: Stack(
                     alignment: Alignment.bottomCenter,
                     children: [
-                      // 🆕 AspectRatio делает блок идеально квадратным (1 к 1)!
                       AspectRatio(
                         aspectRatio: 1.0, 
-                        child: _profile?['avatar_url'] != null // В meeting_detail_screen здесь будет meeting['creator_avatar_url']
+                        child: _profile?['avatar_url'] != null
                             ? CachedNetworkImage(
-                                imageUrl: '${ApiService.baseUrl}${_profile!['avatar_url']}', // Или meeting['creator_avatar_url']
-                                fit: BoxFit.cover, // Важно: cover красиво заполнит квадрат, обрезав лишнее по краям
+                                imageUrl: '${ApiService.baseUrl}${_profile!['avatar_url']}',
+                                fit: BoxFit.cover,
                                 placeholder: (context, url) => Container(
                                   color: const Color(0xFF1E1E1E),
                                   child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
@@ -147,9 +148,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 child: const Icon(Icons.person, size: 80, color: Colors.white54),
                               ),
                       ),
-                      // Градиент и текст снизу
                       Container(
-                        height: 90, // Чуть уменьшил высоту градиента, чтобы на квадратном фото он не перекрывал слишком много лица 😉
+                        height: 90,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.bottomCenter,
@@ -185,7 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const SizedBox(height: 24),
 
-              // 📞 Контактная информация (Стеклянная карточка)
+              // 📞 Контактная информация
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Container(
@@ -228,9 +228,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-              const SizedBox(height: 32),
+              // 🌟 НОВАЯ СЕКЦИЯ: ОБО МНЕ (Параметры и образ жизни)
+              if (_profile?['bio'] != null || _hasAnyNewProfileFields()) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ОБО МНЕ',
+                          style: GoogleFonts.montserrat(
+                            color: const Color(0xFFD4AF37),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        // Текст "О себе" (если есть)
+                        if (_profile?['bio'] != null && _profile!['bio'].toString().isNotEmpty) ...[
+                          Text(
+                            _profile!['bio'],
+                            style: GoogleFonts.montserrat(
+                              color: Colors.white,
+                              fontSize: 15,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Divider(color: Color(0xFFD4AF37), height: 1, thickness: 0.5),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // 🆕 Сетка с параметрами и образом жизни
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            if (_profile?['height'] != null) _buildInfoBadge(Icons.height, '${_profile!['height']} см'),
+                            if (_profile?['weight'] != null) _buildInfoBadge(Icons.monitor_weight, '${_profile!['weight']} кг'),
+                            if (_profile?['body_type'] != null) _buildInfoBadge(Icons.fitness_center, _profile!['body_type']),
+                            if (_profile?['alcohol_attitude'] != null) _buildInfoBadge(Icons.wine_bar, _profile!['alcohol_attitude']),
+                            if (_profile?['smoking_attitude'] != null) _buildInfoBadge(Icons.smoke_free, _profile!['smoking_attitude']),
+                            if (_profile?['marital_status'] != null) _buildInfoBadge(Icons.favorite_outline, _profile!['marital_status']),
+                            if (_profile?['has_children'] != null) _buildInfoBadge(Icons.child_care, _profile!['has_children'] == 'Есть' ? 'Есть дети' : 'Нет детей'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 32),
 
@@ -240,8 +299,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Показываем блок, только если есть архивные встречи
-                    if (_myMeetings.where((m) => m['status'] != 'active').isNotEmpty) ...[
+                    if (_myMeetings.where((m) => _isArchivedMeeting(m)).isNotEmpty) ...[
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.3),
@@ -249,7 +307,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                         ),
                         child: Theme(
-                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent), // Убираем лишнюю линию разделителя
+                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                           child: ExpansionTile(
                             title: Text(
                               'АРХИВ ВСТРЕЧ', 
@@ -277,7 +335,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ] else ...[
-                      // Если архив пуст, просто показываем аккуратную заглушку
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
@@ -300,6 +357,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
+
+              const SizedBox(height: 16),
+
+              // 🆕 📂 Архив заявок (отклонённые и отменённые)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_archivedResponses.isNotEmpty) ...[
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                        ),
+                        child: Theme(
+                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                          child: ExpansionTile(
+                            title: Text(
+                              'АРХИВ ЗАЯВОК', 
+                              style: GoogleFonts.montserrat(
+                                color: Colors.white, 
+                                fontSize: 14, 
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.0,
+                              )
+                            ),
+                            iconColor: const Color(0xFFD4AF37),
+                            collapsedIconColor: const Color(0xFFD4AF37),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
+                                child: Column(
+                                  children: _archivedResponses
+                                      .map((r) => _buildArchivedResponseCard(r))
+                                      .toList(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 20),
             ],
           ),
@@ -444,7 +549,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-    String _getFormattedDateTime(String dateStr, String? timeStr) {
+  // 🆕 📂 Карточка архивной заявки
+  Widget _buildArchivedResponseCard(Map<String, dynamic> response) {
+    final meeting = response['meeting'];
+    final meetingTitle = meeting?['title'] ?? 'Встреча';
+    final meetingDate = meeting?['meeting_date'];
+    final meetingTime = meeting?['meeting_time'];
+    final status = response['status'] ?? 'cancelled';
+    final isRejected = status == 'rejected';
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  meetingTitle,
+                  style: GoogleFonts.montserrat(
+                    color: Colors.grey, 
+                    fontSize: 14, 
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (meetingDate != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _getFormattedDateTime(meetingDate, meetingTime),
+                    style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isRejected ? Colors.redAccent.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isRejected ? Colors.redAccent.withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Text(
+              isRejected ? 'Отклонена' : 'Отменена',
+              style: GoogleFonts.montserrat(
+                color: isRejected ? Colors.redAccent : Colors.grey,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getFormattedDateTime(String dateStr, String? timeStr) {
     final meetingDate = DateTime.parse(dateStr);
     final today = DateTime.now();
     final tomorrow = today.add(const Duration(days: 1));
@@ -457,7 +625,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                        meetingDate.month == tomorrow.month &&
                        meetingDate.day == tomorrow.day;
 
-    // 🆕 Если время не указано, показываем только дату
     if (timeStr == null || timeStr.isEmpty) {
       if (isToday) return 'Сегодня';
       if (isTomorrow) return 'Завтра';
@@ -466,11 +633,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return '${meetingDate.day} ${months[meetingDate.month - 1]}';
     }
 
-    // Если время есть, показываем как раньше
     if (isToday) return 'Сегодня в $timeStr';
     if (isTomorrow) return 'Завтра в $timeStr';
 
     const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
     return '${meetingDate.day} ${months[meetingDate.month - 1]}, $timeStr';
+  }
+
+  // 🆕 Проверяем, должна ли встреча быть в архиве
+  bool _isArchivedMeeting(Map<String, dynamic> meeting) {
+    final status = meeting['status'];
+    final dateStr = meeting['meeting_date'];
+    
+    // Отменённые — всегда в архиве
+    if (status == 'cancelled') return true;
+    
+    // Подтверждённые — только если дата уже прошла
+    if (status == 'confirmed' && dateStr != null) {
+      try {
+        final meetingDate = DateTime.parse(dateStr);
+        final today = DateTime.now();
+        // Сравниваем только даты (без времени)
+        return meetingDate.year < today.year ||
+               (meetingDate.year == today.year && meetingDate.month < today.month) ||
+               (meetingDate.year == today.year && meetingDate.month == today.month && meetingDate.day < today.day);
+      } catch (e) {
+        return false;
+      }
+    }
+    
+    return false;
+  }
+
+  // 🆕 Проверяем, есть ли хоть одно новое заполненное поле
+  bool _hasAnyNewProfileFields() {
+    return _profile?['height'] != null ||
+           _profile?['weight'] != null ||
+           _profile?['body_type'] != null ||
+           _profile?['alcohol_attitude'] != null ||
+           _profile?['smoking_attitude'] != null ||
+           _profile?['marital_status'] != null ||
+           _profile?['has_children'] != null;
+  }
+
+  // 🆕 Строим красивый бейджик с иконкой
+  Widget _buildInfoBadge(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFFD4AF37), size: 16),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: GoogleFonts.montserrat(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -41,6 +41,17 @@ class UserProfile(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
 
+    # 🆕 Новые поля профиля для умного подбора
+    alcohol_attitude: str | None = None      # "Положительное", "Нейтральное", "Отрицательное"
+    smoking_attitude: str | None = None      # "Категорически не приемлю", "Не курю, но не против", "Курю"
+    
+    height: int | None = None                # Рост в см
+    weight: int | None = None                # Вес в кг
+    body_type: str | None = None             # "Худощавое", "Обычное", "Спортивное", "Есть пара лишних кг", "Полное"
+    
+    marital_status: str | None = None        # "В браке", "Свободен"
+    has_children: str | None = None          # "Есть", "Нет"
+
     # Магия Pydantic v2! Автоматически считаем возраст
     @computed_field
     @property
@@ -63,6 +74,17 @@ class UserUpdate(BaseModel):
     city: str | None = None
     latitude: float | None = None
     longitude: float | None = None
+ 
+    # 🆕 Новые поля профиля для умного подбора
+    alcohol_attitude: str | None = None      # "Положительное", "Нейтральное", "Отрицательное"
+    smoking_attitude: str | None = None      # "Категорически не приемлю", "Не курю, но не против", "Курю"
+    
+    height: int | None = None                # Рост в см
+    weight: int | None = None                # Вес в кг
+    body_type: str | None = None             # "Худощавое", "Обычное", "Спортивное", "Есть пара лишних кг", "Полное"
+    
+    marital_status: str | None = None        # "В браке", "Свободен"
+    has_children: str | None = None          # "Есть", "Нет"
 
 # Схемы для фото
 class PhotoResponse(BaseModel):
@@ -127,7 +149,7 @@ class MeetingResponseCreate(BaseModel):
 
 class MeetingResponseInfo(BaseModel):
     id: UUID
-    meeting_id: UUID  # 🆕 ID встречи, чтобы открыть чат
+    meeting_id: UUID | None = None # 🆕 ID встречи, чтобы открыть чат
     meeting_title: str | None = None  # 🆕 Название встречи для карточки
     meeting: dict | None = None  # 🆕 Полные данные о встрече
     user_id: UUID

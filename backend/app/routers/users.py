@@ -92,6 +92,14 @@ async def get_public_user_profile(
         "bio": user.bio,
         "city": user.city,
         "avatar_url": user.avatar_url,
+        # 🆕 Новые поля профиля для умного подбора
+        "height": user.height,
+        "weight": user.weight,
+        "body_type": user.body_type,
+        "alcohol_attitude": user.alcohol_attitude,
+        "smoking_attitude": user.smoking_attitude,
+        "marital_status": user.marital_status,
+        "has_children": user.has_children,
     }
     
     # 4. Получаем все фотографии пользователя
@@ -110,3 +118,19 @@ async def get_public_user_profile(
         "user": user_data,
         "photos": photos_data
     }
+
+# 🆕 Сохранить FCM токен для Push-уведомлений
+@router.put("/fcm-token")
+async def update_fcm_token(
+    token_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    fcm_token = token_data.get("fcm_token")
+    if not fcm_token:
+        raise HTTPException(status_code=400, detail="Токен обязателен")
+    
+    current_user.fcm_token = fcm_token
+    await db.commit()
+    
+    return {"message": "FCM токен успешно сохранен"}

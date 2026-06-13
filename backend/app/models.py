@@ -30,6 +30,17 @@ class User(Base):
     latitude = Column(Float, nullable=True)         # Широта (например, 55.7558)
     longitude = Column(Float, nullable=True)        # Долгота (например, 37.6173)
 
+    # 🆕 Новые поля профиля для умного подбора
+    alcohol_attitude = Column(String(50), nullable=True)   # "Положительное", "Нейтральное", "Отрицательное"
+    smoking_attitude = Column(String(100), nullable=True)  # "Категорически не приемлю", "Не курю, но не против", "Курю"
+    height = Column(Integer, nullable=True)                # Рост в см
+    weight = Column(Integer, nullable=True)                # Вес в кг
+    body_type = Column(String(50), nullable=True)          # "Худощавое", "Обычное", "Спортивное", "Есть пара лишних кг", "Полное"
+    marital_status = Column(String(50), nullable=True)     # "В браке", "Свободен"
+    has_children = Column(String(10), nullable=True)       # "Есть", "Нет"
+   #  Токен для Push-уведомлений
+    fcm_token = Column(Text, nullable=True)
+
     # Связи с фото
     photos = relationship("Photo", back_populates="owner", cascade="all, delete-orphan")
     granted_access = relationship("AlbumAccess", foreign_keys="AlbumAccess.owner_id", back_populates="owner", cascade="all, delete-orphan")

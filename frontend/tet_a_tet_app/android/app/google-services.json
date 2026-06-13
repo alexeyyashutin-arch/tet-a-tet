@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "451760169474",
+    "project_id": "tet-a-tet-app",
+    "storage_bucket": "tet-a-tet-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451760169474:android:469f17b233b3298ca93d1b",
+        "android_client_info": {
+          "package_name": "com.example.tet_a_tet_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdT5srVxQCe6TOKPEKSI0opAMeBqdUdBc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

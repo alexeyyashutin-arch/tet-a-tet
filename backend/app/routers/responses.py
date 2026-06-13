@@ -4,6 +4,8 @@ from sqlalchemy import select
 from uuid import UUID
 from typing import List
 from datetime import date
+import uuid
+from fastapi import status
 
 from ..database import get_db
 from ..models import Meeting, MeetingResponse, User
@@ -29,13 +31,16 @@ async def create_response(
     if meeting.user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Нельзя откликаться на свою встречу")
 
-    # Проверяем, не откликался ли уже
+     # Проверяем, не откликался ли уже (исключаем отменённые и отклонённые заявки)
     stmt = select(MeetingResponse).where(
         MeetingResponse.meeting_id == data.meeting_id,
-        MeetingResponse.user_id == current_user.id
+        MeetingResponse.user_id == current_user.id,
+        MeetingResponse.status.in_(["pending", "accepted", "confirmed"]) # 🆕 Только активные статусы!
     )
     result = await db.execute(stmt)
-    if result.scalar_one_or_none():
+    existing_response = result.scalar_one_or_none()
+    
+    if existing_response:
         raise HTTPException(status_code=400, detail="Вы уже откликнулись на эту встречу")
 
     # Создаем отклик
@@ -55,8 +60,21 @@ async def create_response(
         today = date.today()
         age = today.year - current_user.birth_date.year - ((today.month, today.day) < (current_user.birth_date.month, current_user.birth_date.day))
 
+        # 🆕 Отправляем Push-уведомление автору встречи!
+    from app.services.push_service import send_push_notification
+    
+    # Находим автора встречи, чтобы взять его токен
+    creator = await db.get(User, meeting.user_id)
+    if creator and creator.fcm_token:
+        await send_push_notification(
+            fcm_token=creator.fcm_token,
+            title="Новый отклик! 💕",
+            body=f"{current_user.username} хочет пойти на '{meeting.title}'"
+        )
+
     return MeetingResponseInfo(
         id=new_response.id,
+        meeting_id=new_response.meeting_id,
         user_id=new_response.user_id,
         status=new_response.status,
         response_message=new_response.response_message,
@@ -145,12 +163,15 @@ async def get_my_responses(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # 🆕 Получаем только активные заявки (pending, accepted, confirmed). 
+    # Отклонённые и отменённые уйдут в архив!
     stmt = select(MeetingResponse, Meeting, User).join(
         Meeting, MeetingResponse.meeting_id == Meeting.id
     ).join(
         User, Meeting.user_id == User.id
     ).where(
-        MeetingResponse.user_id == current_user.id
+        MeetingResponse.user_id == current_user.id,
+        MeetingResponse.status.in_(["pending", "accepted", "confirmed"]) # 🆕 Фильтр по статусу!
     ).order_by(MeetingResponse.created_at.desc())
     
     result = await db.execute(stmt)
@@ -194,6 +215,108 @@ async def get_my_responses(
             meeting_id=meeting.id,
             meeting_title=meeting.title,
             meeting=meeting_data,  # 🆕 Передаем полные данные о встрече
+            user_id=resp.user_id,
+            status=resp.status,
+            response_message=resp.response_message,
+            created_at=resp.created_at,
+            responder_username=creator.username,
+            responder_avatar_url=creator.avatar_url,
+            responder_age=age,
+            responder_gender=creator.gender
+        ))
+    return responses
+
+# 🆕 Отменить свою заявку на встречу
+@router.delete("/{response_id}")
+async def cancel_response(
+    response_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    # Ищем отклик
+    stmt = select(MeetingResponse).where(MeetingResponse.id == response_id)
+    result = await db.execute(stmt)
+    response = result.scalar_one_or_none()
+    
+    if not response:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Отклик не найден")
+    
+    # Проверяем, что это именно МОЯ заявка
+    if response.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Нельзя отменить чужую заявку")
+        
+    # Проверяем, что заявка ещё в ожидании (принятую или отклонённую отменять уже поздно)
+    if response.status != "pending":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Можно отменить только заявку, которая ещё в ожидании")
+    
+    # Меняем статус на отменённый (или можно просто удалить, но статус лучше для истории)
+    response.status = "cancelled"
+    await db.commit()
+    
+    return {"message": "Заявка успешно отменена"}
+
+# 5. Получить мои архивные отклики (завершённые)
+@router.get("/my/archived", response_model=List[MeetingResponseInfo])
+async def get_my_archived_responses(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    # 🆕 Берём все заявки, кроме активных (pending, accepted, confirmed с будущей датой)
+    stmt = select(MeetingResponse, Meeting, User).join(
+        Meeting, MeetingResponse.meeting_id == Meeting.id
+    ).join(
+        User, Meeting.user_id == User.id
+    ).where(
+        MeetingResponse.user_id == current_user.id
+    ).order_by(MeetingResponse.created_at.desc())
+    
+    result = await db.execute(stmt)
+    responses_data = result.all()
+
+    responses = []
+    today = date.today()
+    
+    for resp, meeting, creator in responses_data:
+        # 🆕 Фильтруем: в архив попадают только завершённые заявки
+        # 1. Отклонённые и отменённые — всегда в архив
+        # 2. Принятые и подтверждённые — только если дата встречи уже прошла
+        is_archived = (
+            resp.status in ["rejected", "cancelled"] or
+            (resp.status in ["accepted", "confirmed"] and meeting.meeting_date and meeting.meeting_date < today)
+        )
+        
+        if not is_archived:
+            continue  # Пропускаем активные заявки
+        
+        age = None
+        if creator.birth_date:
+            age = today.year - creator.birth_date.year - ((today.month, today.day) < (creator.birth_date.month, creator.birth_date.day))
+        
+        # Формируем структуру meeting
+        meeting_data = {
+            'id': str(meeting.id),
+            'title': meeting.title,
+            'description': meeting.description,
+            'meeting_date': meeting.meeting_date.isoformat() if meeting.meeting_date else None,
+            'meeting_time': meeting.meeting_time,
+            'location': meeting.location,
+            'partner_wishes': meeting.partner_wishes,
+            'finance': meeting.finance,
+            'status': meeting.status,
+            'creator_id': str(creator.id),
+            'creator_username': creator.username,
+            'creator_age': age,
+            'creator_gender': creator.gender,
+            'creator_avatar_url': creator.avatar_url,
+            'has_messages': False,
+            'has_responded': True,
+        }
+
+        responses.append(MeetingResponseInfo(
+            id=resp.id,
+            meeting_id=meeting.id,
+            meeting_title=meeting.title,
+            meeting=meeting_data,
             user_id=resp.user_id,
             status=resp.status,
             response_message=resp.response_message,

@@ -6,11 +6,13 @@ import '../services/api_service.dart';
 import '../widgets/background_pattern.dart';
 import 'chat_screen.dart';
 import 'user_profile_screen.dart';
+import 'my_meetings_screen.dart';
+import 'user_profile_screen.dart';
 
 class MeetingDetailScreen extends StatelessWidget {
   final Map<String, dynamic> meeting;
-
-  const MeetingDetailScreen({super.key, required this.meeting});
+  final ValueNotifier<int> _refreshKey = ValueNotifier<int>(0);
+  MeetingDetailScreen({super.key, required this.meeting});
 
   @override
   Widget build(BuildContext context) {
@@ -67,62 +69,74 @@ class MeetingDetailScreen extends StatelessWidget {
               // 👑 БОЛЬШАЯ КВАДРАТНАЯ АВАТАРКА
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Stack(
-                    alignment: Alignment.bottomCenter,
-                    children: [
-                      AspectRatio(
-                        aspectRatio: 1.0, 
-                        child: meeting['creator_avatar_url'] != null
-                            ? CachedNetworkImage(
-                                imageUrl: '${ApiService.baseUrl}${meeting['creator_avatar_url']}',
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  color: const Color(0xFF1E1E1E),
-                                  child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
-                                ),
-                                errorWidget: (context, url, error) => Container(
+                child: GestureDetector(
+                    onTap: () {
+                      if (meeting['creator_id'] != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => UserProfileScreen(userId: meeting['creator_id'].toString()),
+                          ),
+                        );
+                      }
+                    },                  
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Stack(
+                      alignment: Alignment.bottomCenter,
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 1.0, 
+                          child: meeting['creator_avatar_url'] != null
+                              ? CachedNetworkImage(
+                                  imageUrl: '${ApiService.baseUrl}${meeting['creator_avatar_url']}',
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    color: const Color(0xFF1E1E1E),
+                                    child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    color: const Color(0xFF1E1E1E),
+                                    child: const Icon(Icons.person, size: 80, color: Colors.white54),
+                                  ),
+                                )
+                              : Container(
                                   color: const Color(0xFF1E1E1E),
                                   child: const Icon(Icons.person, size: 80, color: Colors.white54),
                                 ),
-                              )
-                            : Container(
-                                color: const Color(0xFF1E1E1E),
-                                child: const Icon(Icons.person, size: 80, color: Colors.white54),
+                        ),
+                        Container(
+                          height: 90,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                Colors.black.withValues(alpha: 0.95),
+                                Colors.black.withValues(alpha: 0.6),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                          child: Row(
+                            children: [
+                              Icon(genderIcon, color: genderColor, size: 24),
+                              const SizedBox(width: 10),
+                              Text(
+                                nameWithAge,
+                                style: GoogleFonts.montserrat(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
-                      ),
-                      Container(
-                        height: 90,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.95),
-                              Colors.black.withValues(alpha: 0.6),
-                              Colors.transparent,
                             ],
                           ),
                         ),
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                        child: Row(
-                          children: [
-                            Icon(genderIcon, color: genderColor, size: 24),
-                            const SizedBox(width: 10),
-                            Text(
-                              nameWithAge,
-                              style: GoogleFonts.montserrat(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -311,6 +325,14 @@ class MeetingDetailScreen extends StatelessWidget {
                                   backgroundColor: success ? Colors.green : Colors.redAccent,
                                 ),
                               );
+                              
+                              // 🆕 Если отклик успешен, плавно переходим на экран "Мои встречи"
+                              if (success) {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const MyMeetingsScreen()),
+                                );
+                              }
                             }
                           }
                         },
@@ -362,38 +384,43 @@ class MeetingDetailScreen extends StatelessWidget {
 
   // 📋 Секция с откликами (видна только автору)
   Widget _buildResponsesSection(String meetingId) {
-    return FutureBuilder<List<dynamic>?>(
-      future: ApiService().getMeetingResponses(meetingId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox.shrink();
-        }
-        
-        if (snapshot.hasError || snapshot.data == null || snapshot.data!.isEmpty) {
-          return const SizedBox.shrink(); 
-        }
-        
-        final responses = snapshot.data!;
+    return ValueListenableBuilder<int>(
+      valueListenable: _refreshKey,
+      builder: (context, value, child) {
+        return FutureBuilder<List<dynamic>?>(
+          future: ApiService().getMeetingResponses(meetingId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox.shrink();
+            }
+            
+            if (snapshot.hasError || snapshot.data == null || snapshot.data!.isEmpty) {
+              return const SizedBox.shrink(); 
+            }
+            
+            final responses = snapshot.data!;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                'ОТКЛИКИ (${responses.length})',
-                style: GoogleFonts.montserrat(
-                  color: const Color(0xFFD4AF37),
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(
+                    'ОТКЛИКИ (${responses.length})',
+                    style: GoogleFonts.montserrat(
+                      color: const Color(0xFFD4AF37),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            ...responses.map((resp) => _buildResponseCard(context, resp)),
-          ],
+                const SizedBox(height: 12),
+                ...responses.map((resp) => _buildResponseCard(context, resp)),
+              ],
+            );
+          },
         );
       },
     );
@@ -452,16 +479,17 @@ class MeetingDetailScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // 🆕 Умный статус отклика (учитываем все возможные статусы)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: resp['status'] == 'pending' ? Colors.orange.withValues(alpha: 0.2) : Colors.green.withValues(alpha: 0.2),
+                        color: _getResponseStatusColor(resp['status']).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        resp['status'] == 'pending' ? 'Ждёт' : 'Принят',
+                        _getResponseStatusText(resp['status']),
                         style: GoogleFonts.montserrat(
-                          color: resp['status'] == 'pending' ? Colors.orange : Colors.green,
+                          color: _getResponseStatusColor(resp['status']),
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
@@ -495,6 +523,7 @@ class MeetingDetailScreen extends StatelessWidget {
             const SizedBox(height: 16),
             
             // 👇 НИЖНЯЯ ЧАСТЬ: Кнопки действий
+            // 👇 НИЖНЯЯ ЧАСТЬ: Кнопки действий
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -510,12 +539,9 @@ class MeetingDetailScreen extends StatelessWidget {
                             backgroundColor: success ? Colors.redAccent : Colors.grey,
                           ),
                         );
-                        // 🆕 Мгновенное обновление экрана после действия
-                        Navigator.pop(context);
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => MeetingDetailScreen(meeting: meeting)),
-                        );
+                        if (success) {
+                          _refreshKey.value++; // 🆕 Магическое обновление списка!
+                        }
                       }
                     },
                     icon: const Icon(Icons.close, color: Colors.redAccent, size: 18),
@@ -532,12 +558,9 @@ class MeetingDetailScreen extends StatelessWidget {
                             backgroundColor: success ? Colors.green : Colors.grey,
                           ),
                         );
-                        // 🆕 Мгновенное обновление экрана после действия
-                        Navigator.pop(context);
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => MeetingDetailScreen(meeting: meeting)),
-                        );
+                        if (success) {
+                          _refreshKey.value++; // 🆕 Магическое обновление списка!
+                        }
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -547,36 +570,6 @@ class MeetingDetailScreen extends StatelessWidget {
                     ),
                     icon: const Icon(Icons.check, size: 18),
                     label: const Text('Принять', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(width: 8),
-                ] else ...[
-                  // 🆕 Если уже принято или подтверждено, показываем красивый бейдж вместо кнопок
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: (resp['status'] == 'accepted' ? Colors.green : Colors.blue).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: (resp['status'] == 'accepted' ? Colors.green : Colors.blue).withOpacity(0.5)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          resp['status'] == 'accepted' ? Icons.check_circle : Icons.verified,
-                          color: resp['status'] == 'accepted' ? Colors.green : Colors.blue,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          resp['status'] == 'accepted' ? 'Принято' : 'Подтверждено',
-                          style: GoogleFonts.montserrat(
-                            color: resp['status'] == 'accepted' ? Colors.green : Colors.blue,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                   const SizedBox(width: 8),
                 ],
@@ -635,4 +628,29 @@ class MeetingDetailScreen extends StatelessWidget {
     const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
     return '${date.day} ${months[date.month - 1]}, $timeStr';
   }
+
+  // 🎨 Цвета для статусов отклика
+  Color _getResponseStatusColor(String status) {
+    switch (status) {
+      case 'pending': return Colors.orange;
+      case 'accepted': return Colors.green;
+      case 'rejected': return Colors.redAccent;
+      case 'confirmed': return Colors.blue;
+      case 'cancelled': return Colors.grey;
+      default: return Colors.grey;
+    }
+  }
+
+  // 📝 Текст для статусов отклика
+  String _getResponseStatusText(String status) {
+    switch (status) {
+      case 'pending': return 'Ждёт';
+      case 'accepted': return 'Принят';
+      case 'rejected': return 'Отклонён';
+      case 'confirmed': return 'Подтверждён';
+      case 'cancelled': return 'Отменён';
+      default: return 'Неизвестно';
+    }
+  }
+
 }

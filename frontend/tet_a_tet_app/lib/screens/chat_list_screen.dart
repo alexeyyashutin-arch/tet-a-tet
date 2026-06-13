@@ -47,7 +47,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withOpacity(0.3),
+              backgroundColor: Colors.black.withValues(alpha: 0.3),
               elevation: 0,
               title: Text(
                 'СООБЩЕНИЯ',
@@ -71,7 +71,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.chat_bubble_outline, size: 64, color: Colors.white.withOpacity(0.3)),
+                        Icon(Icons.chat_bubble_outline, size: 64, color: Colors.white.withValues(alpha: 0.3)),
                         const SizedBox(height: 16),
                         Text(
                           'Пока нет активных чатов',
@@ -130,9 +130,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5), width: 1),
+              border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.5), width: 1),
             ),
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
@@ -153,7 +153,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   // Аватарка собеседника
                   CircleAvatar(
                     radius: 24,
-                    backgroundColor: const Color(0xFFD4AF37).withOpacity(0.2),
+                    backgroundColor: const Color(0xFFD4AF37).withValues(alpha: 0.2),
                     backgroundImage: opponentAvatar != null 
                         ? CachedNetworkImageProvider('${ApiService.baseUrl}$opponentAvatar') 
                         : null,

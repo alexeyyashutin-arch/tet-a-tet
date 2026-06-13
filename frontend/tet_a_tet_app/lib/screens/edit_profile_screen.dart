@@ -14,7 +14,6 @@ import 'package:geocoding/geocoding.dart';
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic> currentProfile;
   
-
   const EditProfileScreen({super.key, required this.currentProfile});
 
   @override
@@ -26,7 +25,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
   
-  File? _selectedImage; // Выбранное и обрезанное фото (локально)
+  File? _selectedImage;
   bool _isUploadingAvatar = false;
   bool _isSaving = false;
 
@@ -38,9 +37,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _cityController;
   bool _isSearchingCity = false;
   String? _cityError;
-  Map<String, double>? _cityCoords; // Здесь будем хранить найденные координаты
+  Map<String, double>? _cityCoords;
   bool _isDetectingLocation = false;
   String? _locationError;
+
+  // 🆕 Новые переменные для полей профиля
+  late TextEditingController _heightController;
+  late TextEditingController _weightController;
+  String? _selectedAlcoholAttitude;
+  String? _selectedSmokingAttitude;
+  String? _selectedBodyType;
+  String? _selectedMaritalStatus;
+  String? _selectedHasChildren;
 
   @override
   void initState() {
@@ -49,7 +57,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _bioController = TextEditingController(text: widget.currentProfile['bio'] ?? '');
     _selectedGender = widget.currentProfile['gender'];
     _cityController = TextEditingController(text: widget.currentProfile['city'] ?? '');
-    // Если координаты уже были сохранены, можно их подтянуть, но мы будем искать заново при сохранении
+    
+    // 🆕 Инициализация новых полей
+    _heightController = TextEditingController(text: widget.currentProfile['height']?.toString() ?? '');
+    _weightController = TextEditingController(text: widget.currentProfile['weight']?.toString() ?? '');
+    _selectedAlcoholAttitude = widget.currentProfile['alcohol_attitude'];
+    _selectedSmokingAttitude = widget.currentProfile['smoking_attitude'];
+    _selectedBodyType = widget.currentProfile['body_type'];
+    _selectedMaritalStatus = widget.currentProfile['marital_status'];
+    _selectedHasChildren = widget.currentProfile['has_children'];
     
     if (widget.currentProfile['birth_date'] != null) {
       _selectedDate = DateTime.parse(widget.currentProfile['birth_date']);
@@ -57,7 +73,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } else {
       _dobController = TextEditingController();
     }
-        // 🆕 Автоматически определяем геолокацию через небольшую задержку
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _autoDetectLocation();
     });
@@ -129,7 +145,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  // 🆕 Функция выбора и кадрирования аватарки
   Future<void> _pickAndCropAvatar() async {
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -137,10 +152,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
     
     if (pickedFile != null) {
-      // Открываем экран кадрирования
       final CroppedFile? croppedFile = await ImageCropper().cropImage(
         sourcePath: pickedFile.path,
-        aspectRatio: const CropAspectRatio(ratioX: 1.0, ratioY: 1.0), // 🆕 Строгий квадрат!
+        aspectRatio: const CropAspectRatio(ratioX: 1.0, ratioY: 1.0),
         compressQuality: 85,
         uiSettings: [
           AndroidUiSettings(
@@ -149,7 +163,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             toolbarWidgetColor: const Color(0xFFD4AF37),
             backgroundColor: Colors.black,
             initAspectRatio: CropAspectRatioPreset.square,
-            lockAspectRatio: true, // 🆕 Запрещаем менять пропорции
+            lockAspectRatio: true,
             activeControlsWidgetColor: const Color(0xFFD4AF37),
           ),
           IOSUiSettings(
@@ -165,7 +179,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _isUploadingAvatar = true;
         });
 
-        // Загружаем на сервер
         final success = await _api.uploadAvatar(File(croppedFile.path));
         
         if (mounted) {
@@ -190,7 +203,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     }
   }
-   Future<void> _searchCityCoordinates() async {
+  
+  Future<void> _searchCityCoordinates() async {
     final city = _cityController.text.trim();
     if (city.isEmpty) return;
 
@@ -201,13 +215,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     try {
-      // Создаем отдельный Dio для карт (чтобы не конфликтовал с нашим API)
       final dio = Dio(); 
       
       final response = await dio.get(
         'https://nominatim.openstreetmap.org/search',
         options: Options(
-          // 🆕 Nominatim требует нормальный User-Agent с email, иначе блокирует!
           headers: {
             'User-Agent': 'TetATetApp/1.0 (support@tet-a-tet.app)',
             'Accept': 'application/json',
@@ -236,7 +248,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         setState(() => _cityError = 'Город не найден. Попробуйте написать точнее.');
       }
     } on DioException catch (e) {
-      //  Ловим именно ошибки Dio, чтобы увидеть статус и ответ сервера
       print(' Ошибка Dio: ${e.response?.statusCode}');
       print('❌ Ответ сервера карт: ${e.response?.data}');
       
@@ -258,7 +269,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _autoDetectLocation() async {
-    // Если город уже указан, не перезаписываем
     if (_cityController.text.isNotEmpty) return;
 
     setState(() {
@@ -267,7 +277,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     try {
-      // 1. Проверяем разрешение на геолокацию
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -282,15 +291,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         return;
       }
 
-      // 2. Получаем текущие координаты
       Position position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium, // Не нужна сверхточность
+          accuracy: LocationAccuracy.medium,
           timeLimit: Duration(seconds: 10),
         ),
       );
 
-      // 3. Reverse geocoding: координаты → город
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
@@ -328,7 +335,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Определяем, что показывать: новое выбранное фото или старое из профиля
     final currentAvatarUrl = widget.currentProfile['avatar_url'];
     final isFemale = widget.currentProfile['gender'] == 'female' || widget.currentProfile['gender'] == 'ж';
     final genderIcon = isFemale ? Icons.female : Icons.male;
@@ -432,7 +438,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           child: const Icon(Icons.person, size: 80, color: Colors.white54),
                                         ),
                             ),
-                            // Градиент снизу с именем
                             Container(
                               height: 90,
                               decoration: BoxDecoration(
@@ -465,7 +470,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 ],
                               ),
                             ),
-                            // 📷 Кнопка камеры в правом нижнем углу
                             Positioned(
                               right: 16,
                               bottom: 16,
@@ -531,56 +535,55 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                // 🌍 Поле поиска города
-                Text(
-                  'Город', 
-                  style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _cityController,
-                        style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16),
-                        decoration: InputDecoration(
-                          hintText: 'Например, Москва',
-                          hintStyle: GoogleFonts.montserrat(color: Colors.grey),
-                          prefixIcon: const Icon(Icons.location_city, color: Color(0xFFD4AF37)),
-                          filled: true,
-                          fillColor: Colors.black.withValues(alpha: 0.3),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12), 
-                            borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                  // 🌍 Поле поиска города
+                  Text(
+                    'Город', 
+                    style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _cityController,
+                          style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16),
+                          decoration: InputDecoration(
+                            hintText: 'Например, Москва',
+                            hintStyle: GoogleFonts.montserrat(color: Colors.grey),
+                            prefixIcon: const Icon(Icons.location_city, color: Color(0xFFD4AF37)),
+                            filled: true,
+                            fillColor: Colors.black.withValues(alpha: 0.3),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12), 
+                              borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12), 
+                              borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                            ),
+                            errorText: _cityError,
+                            errorStyle: GoogleFonts.montserrat(color: Colors.redAccent, fontSize: 12),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12), 
-                            borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
-                          ),
-                          errorText: _cityError,
-                          errorStyle: GoogleFonts.montserrat(color: Colors.redAccent, fontSize: 12),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Кнопка поиска
-                    SizedBox(
-                      height: 56, // Высота как у текстового поля
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD4AF37),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        height: 56,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD4AF37),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                          ),
+                          onPressed: _isSearchingCity ? null : _searchCityCoordinates,
+                          child: _isSearchingCity
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                              : const Icon(Icons.search, color: Colors.black),
                         ),
-                        onPressed: _isSearchingCity ? null : _searchCityCoordinates,
-                        child: _isSearchingCity
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                            : const Icon(Icons.search, color: Colors.black),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
 
                   Text(
                     'Пол', 
@@ -588,7 +591,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    initialValue: _selectedGender,
+                    value: _selectedGender,
                     dropdownColor: const Color(0xFF1E1E1E),
                     style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16),
                     decoration: InputDecoration(
@@ -636,6 +639,77 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                     ),
                   ),
+                  
+                  // 🆕 НОВЫЕ ПОЛЯ ПРОФИЛЯ
+                  const SizedBox(height: 32),
+                  
+                  // 📏 Рост и Вес (в одну строку)
+                  Text(
+                    'ПАРАМЕТРЫ',
+                    style: GoogleFonts.montserrat(
+                      color: const Color(0xFFD4AF37),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildNumberField(_heightController, 'Рост (см)', Icons.height),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildNumberField(_weightController, 'Вес (кг)', Icons.monitor_weight),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // 🏃 Телосложение
+                  _buildDropdownField(
+                    'Телосложение',
+                    _selectedBodyType,
+                    ['Худощавое', 'Обычное', 'Спортивное', 'Есть пара лишних кг', 'Полное'],
+                    (value) => setState(() => _selectedBodyType = value),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // 🍷 Отношение к алкоголю
+                  _buildDropdownField(
+                    'Отношение к алкоголю',
+                    _selectedAlcoholAttitude,
+                    ['Положительное', 'Нейтральное', 'Отрицательное'],
+                    (value) => setState(() => _selectedAlcoholAttitude = value),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // 🚬 Отношение к курению
+                  _buildDropdownField(
+                    'Отношение к курению',
+                    _selectedSmokingAttitude,
+                    ['Категорически не приемлю', 'Не курю, но не против', 'Курю'],
+                    (value) => setState(() => _selectedSmokingAttitude = value),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // 💑 Семейное положение
+                  _buildDropdownField(
+                    'Семейное положение',
+                    _selectedMaritalStatus,
+                    ['В браке', 'Не в браке'],
+                    (value) => setState(() => _selectedMaritalStatus = value),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // 👶 Дети
+                  _buildDropdownField(
+                    'Дети',
+                    _selectedHasChildren,
+                    ['Есть', 'Нет'],
+                    (value) => setState(() => _selectedHasChildren = value),
+                  ),
                   const SizedBox(height: 20),
                 ],
               ),
@@ -675,11 +749,76 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  // 🆕 Вспомогательный метод для числовых полей
+  Widget _buildNumberField(TextEditingController controller, String hint, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(hint, style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          style: GoogleFonts.montserrat(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.montserrat(color: Colors.grey),
+            prefixIcon: Icon(icon, color: const Color(0xFFD4AF37)),
+            filled: true,
+            fillColor: Colors.black.withValues(alpha: 0.3),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12), 
+              borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12), 
+              borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 🆕 Вспомогательный метод для выпадающих списков
+  Widget _buildDropdownField(String label, String? value, List<String> items, Function(String?) onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: value,
+          dropdownColor: const Color(0xFF1E1E1E),
+          style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.black.withValues(alpha: 0.3),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12), 
+              borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12), 
+              borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+            ),
+          ),
+          items: items.map((item) {
+            return DropdownMenuItem(
+              value: item,
+              child: Text(item, style: GoogleFonts.montserrat(color: Colors.white)),
+            );
+          }).toList(),
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
-    // 🆕 Если город указан, но координаты не найдены (или устарели), ищем заново
     final city = _cityController.text.trim();
     if (city.isNotEmpty && _cityCoords == null) {
       try {
@@ -696,7 +835,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       'bio': _bioController.text.trim().isNotEmpty ? _bioController.text.trim() : null,
       'city': city.isNotEmpty ? city : null,
       'latitude': _cityCoords?['latitude'],
-      'longitude': _cityCoords?['longitude'],      
+      'longitude': _cityCoords?['longitude'],
+      // 🆕 Новые поля
+      'height': _heightController.text.trim().isNotEmpty ? int.tryParse(_heightController.text.trim()) : null,
+      'weight': _weightController.text.trim().isNotEmpty ? int.tryParse(_weightController.text.trim()) : null,
+      'alcohol_attitude': _selectedAlcoholAttitude,
+      'smoking_attitude': _selectedSmokingAttitude,
+      'body_type': _selectedBodyType,
+      'marital_status': _selectedMaritalStatus,
+      'has_children': _selectedHasChildren,
     };
 
     final success = await _api.updateProfile(data);
@@ -718,6 +865,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _dobController.dispose();
     _bioController.dispose();
     _cityController.dispose();
+    _heightController.dispose(); // 🆕
+    _weightController.dispose(); // 🆕
     super.dispose();
   }
 }

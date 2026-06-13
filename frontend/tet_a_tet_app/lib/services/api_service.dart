@@ -370,5 +370,27 @@ class ApiService {
       print('❌ Ошибка получения списка чатов: $e');
       return null;
     }
+  }
+
+  // ❌ Отменить свою заявку на встречу
+  Future<bool> cancelResponse(String responseId) async {
+    try {
+      final response = await _dio.delete('/responses/$responseId');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Ошибка отмены заявки: $e');
+      return false;
+    }
+  }
+
+  // 📂 Получить архивные отклики (отклонённые и отменённые)
+  Future<List<dynamic>?> getMyArchivedResponses() async {
+    try {
+      final response = await _dio.get('/responses/my/archived');
+      return response.data;
+    } catch (e) {
+      print('❌ Ошибка получения архивных заявок: $e');
+      return null;
+    }
   }  
 }

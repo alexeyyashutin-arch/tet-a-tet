@@ -31,12 +31,12 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
     setState(() => _isLoading = true);
     
     final meetings = await _api.getMyMeetings();
-    final responses = await _api.getMyResponses(); // 🆕 Загружаем реальные заявки!
+    final responses = await _api.getMyResponses();
     
     if (mounted) {
       setState(() {
         _myMeetings = meetings ?? [];
-        _myResponses = responses ?? []; //  Подставляем список из API
+        _myResponses = responses ?? [];
         _isLoading = false;
       });
     }
@@ -156,6 +156,7 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                         )
                       else
                         ..._myResponses
+                            .where((r) => r['status'] == 'pending' || r['status'] == 'accepted' || r['status'] == 'confirmed')
                             .map((r) => _buildResponseCard(r))
                             ,
                     ],
@@ -164,7 +165,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
               ),
       ),
       floatingActionButton: Padding(
-        // 🆕 Поднимаем кнопку ровно над стеклянным меню
         padding: const EdgeInsets.only(bottom: 80.0, right: 16.0),
         child: FloatingActionButton(
           backgroundColor: const Color(0xFFD4AF37),
@@ -189,7 +189,7 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
     final timeStr = meeting['meeting_time'];
     final location = meeting['location'];
     final status = meeting['status'];
-    final responsesCount = meeting['responses_count'] ?? 0; // 🆕 Количество откликов
+    final responsesCount = meeting['responses_count'] ?? 0;
 
     final formattedDate = _getFormattedDateTime(dateStr, timeStr);
     final statusColor = _getStatusColor(status);
@@ -201,7 +201,7 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
       child: ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-          child: InkWell( // 🆕 Делаем всю карточку кликабельной!
+          child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: () {
               Navigator.push(
@@ -209,14 +209,14 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                 MaterialPageRoute(
                   builder: (context) => MeetingDetailScreen(meeting: meeting),
                 ),
-              ).then((_) => _loadData()); // 🆕 Обновляем список после возврата, чтобы увидеть новые отклики
+              ).then((_) => _loadData());
             },
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5), width: 1),
+                border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.5), width: 1),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,15 +233,14 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                           ),
                         ),
                       ),
-                      // 🆕 Бейджик с количеством откликов (показываем, если > 0)
                       if (responsesCount > 0) ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD4AF37).withOpacity(0.2),
+                            color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)),
+                            border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.5)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -261,13 +260,12 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                         ),
                       ],
                       const SizedBox(width: 8),
-                      // Статус встречи
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.2),
+                          color: statusColor.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: statusColor.withOpacity(0.5)),
+                          border: Border.all(color: statusColor.withValues(alpha: 0.5)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -288,8 +286,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  
-                  // Дата и время
                   Row(
                     children: [
                       const Icon(Icons.calendar_today, color: Color(0xFFD4AF37), size: 16),
@@ -302,8 +298,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                       ),
                     ],
                   ),
-                  
-                  // Локация (если есть)
                   if (location != null && location.toString().isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Row(
@@ -319,7 +313,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                       ],
                     ),
                   ],
-                  
                   const SizedBox(height: 12),
                   Align(
                     alignment: Alignment.centerRight,
@@ -347,15 +340,13 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
     final status = response['status'] ?? 'pending';
     final meetingId = response['meeting_id'];
     final meetingTitle = response['meeting_title'] ?? 'Название встречи';
-    final meeting = response['meeting']; // 🆕 Полные данные о встрече
+    final meeting = response['meeting'];
     
-    // 🆕 Достаём данные из объекта meeting
     final meetingDate = meeting?['meeting_date'];
     final meetingTime = meeting?['meeting_time'];
     final meetingLocation = meeting?['location'];
-    final hasMessages = meeting?['has_messages'] ?? false; // 🆕 Есть ли сообщения в чате
+    final hasMessages = meeting?['has_messages'] ?? false;
     
-    // Форматируем дату, если она есть
     String formattedDate = 'Дата уточняется';
     if (meetingDate != null) {
       formattedDate = _getFormattedDateTime(meetingDate, meetingTime);
@@ -373,9 +364,9 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5), width: 1),
+              border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.5), width: 1),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,40 +383,42 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                         ),
                       ),
                     ),
-                    // 🆕 Иконка чата, если уже есть сообщения!
                     if (hasMessages) ...[
                       const SizedBox(width: 8),
                       const Icon(Icons.chat_bubble, color: Color(0xFFD4AF37), size: 20),
                     ],
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: statusColor.withOpacity(0.5)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(statusIcon, color: statusColor, size: 14),
-                          const SizedBox(width: 6),
-                          Text(
-                            statusText,
-                            style: GoogleFonts.montserrat(
-                              color: statusColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
+                    // 🆕 Показываем верхний бейджик ТОЛЬКО если статус НЕ 'confirmed'
+                    // (потому что для 'confirmed' внизу уже есть большая красивая плашка "ВСТРЕЧА ПОДТВЕРЖДЕНА")
+                    if (status != 'confirmed') ...[
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: statusColor.withValues(alpha: 0.5)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(statusIcon, color: statusColor, size: 14),
+                            const SizedBox(width: 6),
+                            Text(
+                              statusText,
+                              style: GoogleFonts.montserrat(
+                                color: statusColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 12),
                 
-                // Дата встречи
                 Row(
                   children: [
                     const Icon(Icons.calendar_today, color: Color(0xFFD4AF37), size: 16),
@@ -439,7 +432,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                   ],
                 ),
                 
-                // Место встречи (если есть)
                 if (meetingLocation != null && meetingLocation.toString().isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Row(
@@ -497,9 +489,9 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: Colors.green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.green.withOpacity(0.5)),
+                      border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -543,6 +535,62 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                       label: Text(
                         'ПЕРЕЙТИ В ЧАТ',
                         style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+                
+                // 🆕 КНОПКА ОТМЕНЫ ЗАЯВКИ (видна ТОЛЬКО если статус "pending")
+                if (status == 'pending') ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        // Спрашиваем подтверждение, чтобы не нажать случайно
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor: const Color(0xFF1E1E1E),
+                            title: Text('Отменить заявку?', style: GoogleFonts.montserrat(color: Colors.white)),
+                            content: Text('Вы уверены, что хотите отменить свою заявку на эту встречу?', style: GoogleFonts.montserrat(color: Colors.grey)),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false), 
+                                child: Text('Нет', style: GoogleFonts.montserrat(color: Colors.grey))
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true), 
+                                child: Text('Да, отменить', style: GoogleFonts.montserrat(color: Colors.redAccent, fontWeight: FontWeight.bold))
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm == true) {
+                          final success = await ApiService().cancelResponse(response['id'].toString());
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(success ? 'Заявка успешно отменена' : 'Не удалось отменить заявку'),
+                                backgroundColor: success ? Colors.green : Colors.redAccent,
+                              ),
+                            );
+                            if (success) {
+                              _loadData(); // 🆕 Обновляем список, чтобы карточка изменила статус
+                            }
+                          }
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.redAccent, width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 20),
+                      label: Text(
+                        'ОТМЕНИТЬ ЗАЯВКУ', 
+                        style: GoogleFonts.montserrat(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -607,12 +655,12 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
   // 🎨 Цвета для статусов
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'active': return Colors.green;       // 🆕 Активная встреча
+      case 'active': return Colors.green;
       case 'pending': return Colors.orange;
       case 'accepted': return Colors.green;
       case 'rejected': return Colors.redAccent;
       case 'confirmed': return Colors.blue;
-      case 'cancelled': return Colors.grey;     // 🆕 Отменённая встреча
+      case 'cancelled': return Colors.grey;
       default: return Colors.grey;
     }
   }
@@ -620,12 +668,12 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
   // 📝 Текст для статусов
   String _getStatusText(String status) {
     switch (status) {
-      case 'active': return 'Активна';          // 🆕 Теперь будет писать "Активна", а не "Неизвестно"!
+      case 'active': return 'Активна';
       case 'pending': return 'В ожидании';
       case 'accepted': return 'Принята';
       case 'rejected': return 'Отклонена';
       case 'confirmed': return 'Подтверждена';
-      case 'cancelled': return 'Отменена';      // 🆕
+      case 'cancelled': return 'Отменена';
       default: return 'Неизвестно';
     }
   }
@@ -633,12 +681,12 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
   // 🎯 Иконки для статусов
   IconData _getStatusIcon(String status) {
     switch (status) {
-      case 'active': return Icons.event_available; // 🆕 Красивая иконка для активной встречи
+      case 'active': return Icons.event_available;
       case 'pending': return Icons.access_time;
       case 'accepted': return Icons.check_circle_outline;
       case 'rejected': return Icons.cancel_outlined;
       case 'confirmed': return Icons.verified;
-      case 'cancelled': return Icons.block;        // 🆕
+      case 'cancelled': return Icons.block;
       default: return Icons.help_outline;
     }
   }

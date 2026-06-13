@@ -27,7 +27,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Future<void> _loadUserData() async {
-    // 🆕 Загружаем данные пользователя по ID
     final userData = await _api.getUserById(widget.userId);
     
     if (mounted) {
@@ -37,6 +36,44 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  // 🆕 Проверяем, есть ли хоть одно новое заполненное поле
+  bool _hasAnyNewProfileFields() {
+    return _user?['height'] != null ||
+           _user?['weight'] != null ||
+           _user?['body_type'] != null ||
+           _user?['alcohol_attitude'] != null ||
+           _user?['smoking_attitude'] != null ||
+           _user?['marital_status'] != null ||
+           _user?['has_children'] != null;
+  }
+
+  // 🆕 Строим красивый бейджик с иконкой
+  Widget _buildInfoBadge(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFFD4AF37), size: 16),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: GoogleFonts.montserrat(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -153,17 +190,67 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 const SizedBox(height: 24),
               ],
 
-              // 📝 О себе
-              if (bio != null && bio.isNotEmpty) ...[
+              // 🌟 НОВАЯ СЕКЦИЯ: ОБО МНЕ (объединяем "О себе" и новые параметры)
+              if ((bio != null && bio.isNotEmpty) || _hasAnyNewProfileFields()) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('О СЕБЕ', style: GoogleFonts.montserrat(color: const Color(0xFFD4AF37), fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-                      const SizedBox(height: 8),
-                      Text(bio, style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 15, height: 1.5)),
-                    ],
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ОБО МНЕ',
+                          style: GoogleFonts.montserrat(
+                            color: const Color(0xFFD4AF37),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        // Текст "О себе" (если есть)
+                        if (bio != null && bio.isNotEmpty) ...[
+                          Text(
+                            bio,
+                            style: GoogleFonts.montserrat(
+                              color: Colors.white,
+                              fontSize: 15,
+                              height: 1.5,
+                            ),
+                          ),
+                          if (_hasAnyNewProfileFields()) ...[
+                            const SizedBox(height: 16),
+                            const Divider(color: Color(0xFFD4AF37), height: 1, thickness: 0.5),
+                            const SizedBox(height: 16),
+                          ],
+                        ],
+
+                        // 🆕 Сетка с параметрами и образом жизни
+                        if (_hasAnyNewProfileFields()) ...[
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              if (_user?['height'] != null) _buildInfoBadge(Icons.height, '${_user!['height']} см'),
+                              if (_user?['weight'] != null) _buildInfoBadge(Icons.monitor_weight, '${_user!['weight']} кг'),
+                              if (_user?['body_type'] != null) _buildInfoBadge(Icons.fitness_center, _user!['body_type']),
+                              if (_user?['alcohol_attitude'] != null) _buildInfoBadge(Icons.wine_bar, _user!['alcohol_attitude']),
+                              if (_user?['smoking_attitude'] != null) _buildInfoBadge(Icons.smoke_free, _user!['smoking_attitude']),
+                              if (_user?['marital_status'] != null) _buildInfoBadge(Icons.favorite_outline, _user!['marital_status']),
+                              if (_user?['has_children'] != null) _buildInfoBadge(Icons.child_care, _user!['has_children'] == 'Есть' ? 'Есть дети' : 'Нет детей'),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 32),

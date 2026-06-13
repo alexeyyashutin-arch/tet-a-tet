@@ -4,6 +4,7 @@ backend/.venv/
 backend/__pycache__/
 backend/*.pyc
 backend/.env
+backend/firebase/serviceAccountKey.json
 
 # --- Flutter / Frontend ---
 frontend/tet_a_tet_app/build/
