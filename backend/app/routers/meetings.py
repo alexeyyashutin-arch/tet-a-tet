@@ -68,13 +68,37 @@ async def create_meeting(
 
 @router.get("/", response_model=List[MeetingResponse])
 async def get_active_meetings(
+    min_age: int = None,
+    max_age: int = None,
+    gender: str = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    from datetime import timedelta
+    
+    # Базовый запрос: берем все активные встречи и джойним с пользователями
     stmt = select(Meeting, User).join(User, Meeting.user_id == User.id).where(
         Meeting.status == "active"
     )
+
+    if gender:
+        stmt = stmt.where(User.gender == gender)
     
+    # 🆕 МАГИЯ ФИЛЬТРАЦИИ ПО ВОЗРАСТУ!
+    today = date.today()
+    if min_age is not None or max_age is not None:
+        # Вычисляем диапазон дат рождения
+        # Если ищем мин. возраст 25, значит дата рождения должна быть <= (сегодня - 25 лет)
+        # Если ищем макс. возраст 35, значит дата рождения должна быть >= (сегодня - 35 лет)
+        if min_age is not None:
+            max_birth_date = today.replace(year=today.year - min_age)
+            stmt = stmt.where(User.birth_date <= max_birth_date)
+            
+        if max_age is not None:
+            min_birth_date = today.replace(year=today.year - max_age)
+            stmt = stmt.where(User.birth_date >= min_birth_date)
+
+    # 🆕 Фильтрация по городу (если у текущего пользователя указан город)
     if current_user.city:
         stmt = stmt.where(User.city == current_user.city)
         

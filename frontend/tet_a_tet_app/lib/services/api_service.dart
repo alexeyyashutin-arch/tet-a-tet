@@ -230,12 +230,18 @@ class ApiService {
     }
   }
 
-  // 📋 Получить активные встречи
-  Future<List<dynamic>?> getActiveMeetings() async {
+  // 🆕 Получить активные встречи с фильтрацией
+  Future<List<dynamic>?> getActiveMeetings({int? minAge, int? maxAge, String? gender}) async {
     try {
-      final response = await _dio.get('/meetings/');
+      final queryParams = <String, dynamic>{};
+      if (minAge != null) queryParams['min_age'] = minAge;
+      if (maxAge != null) queryParams['max_age'] = maxAge;
+      if (gender != null) queryParams['gender'] = gender;
+      
+      final response = await _dio.get('/meetings/', queryParameters: queryParams);
       return response.data;
     } catch (e) {
+      print('❌ Ошибка получения встреч: $e');
       return null;
     }
   }
