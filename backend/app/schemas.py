@@ -138,8 +138,11 @@ class MeetingResponse(BaseModel):
     creator_gender: str | None = None
     responses_count: int = 0  # 🆕 Добавляем поле для количества откликов (с дефолтом 0)
     has_responded: bool = False  # 🆕 Откликнулся ли текущий пользователь на эту встречу
-
+   
+    unread_responses_count: int = 0
+   
     model_config = {"from_attributes": True}
+    
 
 # --- Схемы для откликов на встречи (Responses) ---
 
@@ -163,8 +166,10 @@ class MeetingResponseInfo(BaseModel):
     responder_age: int | None = None
     responder_gender: str | None = None
     
-    model_config = {"from_attributes": True}
+    is_read: bool = False
 
+    model_config = {"from_attributes": True}
+    
 
 # --- Схемы для сообщений (Чат) ---
 
@@ -185,3 +190,8 @@ class MessageResponse(BaseModel):
     sender_avatar_url: str | None = None
     
     model_config = {"from_attributes": True}
+
+# 🆕 Схема для ответа со списком моих встреч и общим количеством непрочитанных откликов
+class MyMeetingsResponse(BaseModel):
+    meetings: list[MeetingResponse]
+    total_unread_responses: int = 0

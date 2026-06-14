@@ -240,12 +240,13 @@ class ApiService {
     }
   }
 
-  // 👤 Получить мои встречи
-  Future<List<dynamic>?> getMyMeetings() async {
+  // 👤 Получить мои встречи с количеством непрочитанных откликов
+  Future<Map<String, dynamic>?> getMyMeetings() async {
     try {
       final response = await _dio.get('/meetings/my');
-      return response.data;
+      return response.data; // 🆕 Теперь возвращаем весь объект, а не просто список
     } catch (e) {
+      print('❌ Ошибка получения моих встреч: $e');
       return null;
     }
   }
@@ -392,5 +393,27 @@ class ApiService {
       print('❌ Ошибка получения архивных заявок: $e');
       return null;
     }
-  }  
+  } 
+
+  // 🆕 Отправить FCM токен на бэкенд
+  Future<bool> updateFcmToken(String token) async {
+    try {
+      await _dio.put('/users/fcm-token', data: {'fcm_token': token});
+      return true;
+    } catch (e) {
+      print('❌ Ошибка обновления FCM токена: $e');
+      return false;
+    }
+  }
+
+  // 🆕 Пометить все отклики на встречу как прочитанные
+  Future<bool> markResponsesAsRead(String meetingId) async {
+    try {
+      await _dio.put('/responses/mark-as-read/$meetingId');
+      return true;
+    } catch (e) {
+      print('❌ Ошибка пометки откликов как прочитанных: $e');
+      return false;
+    }
+  } 
 }

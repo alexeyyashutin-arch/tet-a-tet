@@ -29,13 +29,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final data = await _api.getProfile();
-    final meetings = await _api.getMyMeetings();
+    final response = await _api.getMyMeetings();
     final archived = await _api.getMyArchivedResponses(); // 🆕 Загружаем архивные заявки
     
     if (mounted) {
       setState(() {
         _profile = data;
-        _myMeetings = meetings ?? [];
+        _myMeetings = response?['meetings'] ?? []; 
         _archivedResponses = archived ?? []; // 🆕
         _isLoading = false;
       });

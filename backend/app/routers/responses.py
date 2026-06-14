@@ -6,6 +6,7 @@ from typing import List
 from datetime import date
 import uuid
 from fastapi import status
+from sqlalchemy import update
 
 from ..database import get_db
 from ..models import Meeting, MeetingResponse, User
@@ -327,3 +328,37 @@ async def get_my_archived_responses(
             responder_gender=creator.gender
         ))
     return responses
+
+# 🆕 Пометить все отклики на встречу как прочитанные
+@router.put("/mark-as-read/{meeting_id}")
+async def mark_responses_as_read(
+    meeting_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    # 1. Проверяем, что встреча существует и принадлежит текущему пользователю
+    stmt = select(Meeting).where(Meeting.id == meeting_id)
+    result = await db.execute(stmt)
+    meeting = result.scalar_one_or_none()
+    
+    if not meeting:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Встреча не найдена")
+    
+    if meeting.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Можно помечать только свои встречи")
+    
+   # 2. Помечаем только pending-отклики как прочитанные
+    update_stmt = (
+        update(MeetingResponse)
+        .where(
+            MeetingResponse.meeting_id == meeting_id,
+            MeetingResponse.is_read == False,
+            MeetingResponse.status == 'pending'  # 🆕 Только те, что ждут решения
+        )
+        .values(is_read=True)
+    )
+    
+    await db.execute(update_stmt)
+    await db.commit()
+    
+    return {"message": "Все отклики помечены как прочитанные"}

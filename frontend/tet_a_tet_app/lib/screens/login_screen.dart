@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tet_a_tet_app/screens/main_screen.dart';
 import '../services/api_service.dart';
 import '../widgets/background_pattern.dart';
+import '../services/push_notification_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -264,6 +265,7 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() { _isLoading = false; });
       
       if (token != null) {
+        await PushNotificationService().initialize(); //Подключаем сервис уведомлений
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainScreen()),

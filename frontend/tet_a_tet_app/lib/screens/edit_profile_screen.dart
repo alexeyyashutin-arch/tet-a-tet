@@ -591,7 +591,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: _selectedGender,
+                    initialValue: _selectedGender,
                     dropdownColor: const Color(0xFF1E1E1E),
                     style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16),
                     decoration: InputDecoration(
@@ -788,7 +788,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         Text(label, style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           dropdownColor: const Color(0xFF1E1E1E),
           style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16),
           decoration: InputDecoration(

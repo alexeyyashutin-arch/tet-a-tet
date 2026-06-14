@@ -7,7 +7,6 @@ import '../widgets/background_pattern.dart';
 import 'chat_screen.dart';
 import 'user_profile_screen.dart';
 import 'my_meetings_screen.dart';
-import 'user_profile_screen.dart';
 
 class MeetingDetailScreen extends StatelessWidget {
   final Map<String, dynamic> meeting;
@@ -399,6 +398,11 @@ class MeetingDetailScreen extends StatelessWidget {
             }
             
             final responses = snapshot.data!;
+
+            // 🆕 Помечаем отклики как прочитанные (только если они есть и мы автор)
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ApiService().markResponsesAsRead(meetingId);
+            });
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,

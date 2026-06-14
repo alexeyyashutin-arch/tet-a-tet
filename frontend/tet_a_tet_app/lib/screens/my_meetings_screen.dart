@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../widgets/background_pattern.dart';
@@ -19,6 +18,7 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
   final _api = ApiService();
   List<dynamic> _myMeetings = [];
   List<dynamic> _myResponses = [];
+  int _totalUnreadResponses = 0; // 🆕 Общее количество непрочитанных откликов
   bool _isLoading = true;
 
   @override
@@ -30,12 +30,14 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     
-    final meetings = await _api.getMyMeetings();
+    // 🆕 Теперь получаем объект с двумя полями
+    final response = await _api.getMyMeetings();
     final responses = await _api.getMyResponses();
     
     if (mounted) {
       setState(() {
-        _myMeetings = meetings ?? [];
+        _myMeetings = response?['meetings'] ?? []; // 🆕 Извлекаем список встреч
+        _totalUnreadResponses = response?['total_unread_responses'] ?? 0; // 🆕 Общее количество непрочитанных
         _myResponses = responses ?? [];
         _isLoading = false;
       });
@@ -181,7 +183,7 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
     );
   }
 
-  // 🃏 Карточка созданной встречи (теперь кликабельная и с бейджиком откликов!)
+  // 🃏 Карточка созданной встречи (теперь с подсветкой непрочитанных откликов!)
   Widget _buildActiveMeetingCard(Map<String, dynamic> meeting) {
     final meetingId = meeting['id'];
     final title = meeting['title'];
@@ -190,11 +192,15 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
     final location = meeting['location'];
     final status = meeting['status'];
     final responsesCount = meeting['responses_count'] ?? 0;
+    final unreadCount = meeting['unread_responses_count'] ?? 0; // 🆕 Количество непрочитанных
 
     final formattedDate = _getFormattedDateTime(dateStr, timeStr);
     final statusColor = _getStatusColor(status);
     final statusText = _getStatusText(status);
     final statusIcon = _getStatusIcon(status);
+    
+    // 🆕 Если есть непрочитанные, добавляем золотую рамку
+    final hasUnread = unreadCount > 0;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -216,7 +222,21 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.5), width: 1),
+                // 🆕 Золотая рамка, если есть непрочитанные отклики
+                border: Border.all(
+                  color: hasUnread 
+                      ? const Color(0xFFD4AF37) 
+                      : const Color(0xFFD4AF37).withValues(alpha: 0.5), 
+                  width: hasUnread ? 2 : 1
+                ),
+                // 🆕 Лёгкое свечение для непрочитанных
+                boxShadow: hasUnread ? [
+                  BoxShadow(
+                    color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    spreadRadius: 1,
+                  )
+                ] : null,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +253,33 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                           ),
                         ),
                       ),
-                      if (responsesCount > 0) ...[
+                      // 🆕 Бейджик непрочитанных откликов (если есть)
+                      if (hasUnread) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD4AF37), // 🆕 Золотой фон!
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.new_releases, color: Colors.black, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                unreadCount.toString(),
+                                style: GoogleFonts.montserrat(
+                                  color: Colors.black,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else if (responsesCount > 0) ...[
+                        // 🆕 Обычный бейджик, если все прочитаны
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -387,8 +433,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                       const SizedBox(width: 8),
                       const Icon(Icons.chat_bubble, color: Color(0xFFD4AF37), size: 20),
                     ],
-                    // 🆕 Показываем верхний бейджик ТОЛЬКО если статус НЕ 'confirmed'
-                    // (потому что для 'confirmed' внизу уже есть большая красивая плашка "ВСТРЕЧА ПОДТВЕРЖДЕНА")
                     if (status != 'confirmed') ...[
                       const SizedBox(width: 12),
                       Container(
@@ -450,7 +494,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                 
                 const SizedBox(height: 12),
                 
-                // Кнопка подтверждения встречи (появляется, если автор принял заявку)
                 if (status == 'accepted') ...[
                   SizedBox(
                     width: double.infinity,
@@ -507,7 +550,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                   ),
                 ],
                 
-                // 💬 Кнопка перехода в чат (ПОЯВЛЯЕТСЯ ТОЛЬКО если создатель уже начал чат)
                 if (hasMessages == true) ...[
                   const SizedBox(height: 12),
                   SizedBox(
@@ -540,14 +582,12 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                   ),
                 ],
                 
-                // 🆕 КНОПКА ОТМЕНЫ ЗАЯВКИ (видна ТОЛЬКО если статус "pending")
                 if (status == 'pending') ...[
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () async {
-                        // Спрашиваем подтверждение, чтобы не нажать случайно
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
@@ -577,7 +617,7 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                               ),
                             );
                             if (success) {
-                              _loadData(); // 🆕 Обновляем список, чтобы карточка изменила статус
+                              _loadData();
                             }
                           }
                         }
@@ -629,7 +669,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
     );
   }
 
-  // 📅 Форматируем дату и время для красивого отображения
   String _getFormattedDateTime(String? dateStr, String? timeStr) {
     if (dateStr == null) return 'Дата уточняется';
     try {
@@ -643,7 +682,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
     }
   }
 
-  // 🗓️ Вспомогательный метод для названия месяца
   String _getMonthName(int month) {
     const months = [
       '', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
@@ -652,7 +690,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
     return months[month];
   }
 
-  // 🎨 Цвета для статусов
   Color _getStatusColor(String status) {
     switch (status) {
       case 'active': return Colors.green;
@@ -665,7 +702,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
     }
   }
 
-  // 📝 Текст для статусов
   String _getStatusText(String status) {
     switch (status) {
       case 'active': return 'Активна';
@@ -678,7 +714,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
     }
   }
 
-  // 🎯 Иконки для статусов
   IconData _getStatusIcon(String status) {
     switch (status) {
       case 'active': return Icons.event_available;

@@ -119,6 +119,9 @@ class MeetingResponse(Base):
     status = Column(String(20), nullable=False, default="pending") 
     
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+ 
+    # 🆕 Поле для отслеживания прочитанных откликов
+    is_read = Column(Boolean, default=False, nullable=False)
 
 
 class Message(Base):
