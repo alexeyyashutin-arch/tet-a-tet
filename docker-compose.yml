@@ -8,6 +8,8 @@ services:
     volumes:
       - ./backend/app:/tet-a-tet-backend/app
       - ./backend/uploads:/tet-a-tet-backend/uploads
+      - ./backend/alembic:/tet-a-tet-backend/alembic
+      - ./backend/alembic.ini:/tet-a-tet-backend/alembic.ini
     environment:
       - DATABASE_URL=postgresql+asyncpg://tete_user:tete_secret_password@db:5432/tet_a_tet_db
     depends_on:

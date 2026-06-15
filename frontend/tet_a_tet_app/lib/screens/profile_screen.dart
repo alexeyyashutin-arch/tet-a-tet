@@ -11,10 +11,10 @@ class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<ProfileScreen> createState() => ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class ProfileScreenState extends State<ProfileScreen> {
   final _api = ApiService();
   Map<String, dynamic>? _profile;
   List<dynamic> _myMeetings = [];
@@ -24,19 +24,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    loadProfile(); // 🆕 Вызываем публичный метод
   }
 
-  Future<void> _loadProfile() async {
+  // 🆕 Убрали подчёркивание, чтобы можно было вызывать извне
+  Future<void> loadProfile() async {
     final data = await _api.getProfile();
     final response = await _api.getMyMeetings();
-    final archived = await _api.getMyArchivedResponses(); // 🆕 Загружаем архивные заявки
+    final archived = await _api.getMyArchivedResponses();
     
     if (mounted) {
       setState(() {
         _profile = data;
         _myMeetings = response?['meetings'] ?? []; 
-        _archivedResponses = archived ?? []; // 🆕
+        _archivedResponses = archived ?? [];
         _isLoading = false;
       });
     }
@@ -89,7 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       MaterialPageRoute(
                         builder: (context) => EditProfileScreen(currentProfile: _profile ?? {}),
                       ),
-                    ).then((_) => _loadProfile());
+                    ).then((_) => loadProfile());
                   },
                 ),
                 IconButton(
@@ -481,7 +482,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
                 if (confirm == true) {
                   await _api.cancelMeeting(meeting['id'].toString());
-                  _loadProfile();
+                  loadProfile();
                 }
               },
               icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 18),

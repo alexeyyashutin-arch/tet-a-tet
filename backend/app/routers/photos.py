@@ -56,7 +56,7 @@ async def get_public_photos(
     stmt = select(Photo).where(
         Photo.user_id == user_id,
         Photo.album_type == "public"
-    ).order_by(Photo.uploaded_at.desc())
+    ).order_by(Photo.order_index.asc(), Photo.uploaded_at.asc())
     
     result = await db.execute(stmt)
     photos = result.scalars().all()
@@ -70,7 +70,7 @@ async def get_my_private_photos(
     stmt = select(Photo).where(
         Photo.user_id == current_user.id,
         Photo.album_type == "private"
-    ).order_by(Photo.uploaded_at.desc())
+    ).order_by(Photo.order_index.asc(), Photo.uploaded_at.asc())
     
     result = await db.execute(stmt)
     photos = result.scalars().all()
@@ -86,7 +86,7 @@ async def get_user_private_photos(
     stmt = select(AlbumAccess).where(
         AlbumAccess.owner_id == user_id,
         AlbumAccess.granted_to_id == current_user.id
-    )
+    ).order_by(Photo.order_index.asc(), Photo.uploaded_at.asc())
     result = await db.execute(stmt)
     access = result.scalar_one_or_none()
     
@@ -202,3 +202,35 @@ async def delete_photo(
     await db.commit()
     
     return {"message": "Фото удалено"}
+
+
+# 🆕 Изменить порядок фото и автоматически обновить аватарку, если нужно
+@router.put("/reorder")
+async def reorder_photos(
+    data: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    album_type = data.get('album_type')
+    photo_ids = data.get('photo_ids', [])
+    
+    if not album_type or not photo_ids:
+        raise HTTPException(status_code=400, detail="album_type и photo_ids обязательны")
+    
+    # Обновляем порядок для каждого фото
+    for index, photo_id in enumerate(photo_ids):
+        stmt = select(Photo).where(Photo.id == photo_id, Photo.user_id == current_user.id)
+        result = await db.execute(stmt)
+        photo = result.scalar_one_or_none()
+        
+        if photo:
+            photo.order_index = index
+            
+            # 🎯 МАГИЯ: Если это публичный альбом и фото встало на первое место (индекс 0)
+            if album_type == 'public' and index == 0:
+                current_user.avatar_url = photo.url
+    
+    # Сохраняем все изменения в базе данных
+    await db.commit()
+    
+    return {"message": "Порядок обновлён, аватарка синхронизирована!"}

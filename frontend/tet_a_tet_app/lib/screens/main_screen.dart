@@ -18,20 +18,24 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   int _totalUnreadChats = 0; // 🆕 Счётчик непрочитанных сообщений в чатах
   int _totalUnreadResponses = 0; // 🆕 Счётчик непрочитанных откликов на встречи
-  
-  final List<Widget> _screens = [
-    const MeetingsFeedScreen(),
-    const MyMeetingsScreen(),
-    const ProfileScreen(),
-    const AlbumsScreen(isMyProfile: true),
-    const ChatListScreen(),
-  ];
 
+  // 🆕 Создаём ключ для ProfileScreen, чтобы можно было вызывать его методы
+  final GlobalKey<ProfileScreenState> _profileScreenKey = GlobalKey<ProfileScreenState>();
+  
+  final List<Widget> _screens = [];
+  
   @override
   void initState() {
     super.initState();
-    _updateUnreadChatsCount(); // 🆕 Считаем непрочитанные чаты при запуске
-    _updateUnreadResponsesCount(); // 🆕 Считаем непрочитанные отклики при запуске
+    _screens.addAll([
+      const MeetingsFeedScreen(),
+      const MyMeetingsScreen(),
+      ProfileScreen(key: _profileScreenKey), // 🆕 Передаём ключ!
+      const AlbumsScreen(isMyProfile: true),
+      const ChatListScreen(),
+    ]);
+    _updateUnreadChatsCount();
+    _updateUnreadResponsesCount();
   }
 
   // 🆕 Метод для обновления счётчика непрочитанных чатов
@@ -73,10 +77,12 @@ class _MainScreenState extends State<MainScreen> {
               currentIndex: _currentIndex,
               onTap: (index) {
                 setState(() => _currentIndex = index);
-                if (index == 4) { // 🆕 Если перешли на вкладку чатов
-                  _updateUnreadChatsCount(); // Обновляем счётчик чатов
-                } else if (index == 1) { // 🆕 Если перешли на вкладку "Моё"
-                  _updateUnreadResponsesCount(); // Обновляем счётчик откликов
+                if (index == 4) {
+                  _updateUnreadChatsCount();
+                } else if (index == 1) {
+                  _updateUnreadResponsesCount();
+                } else if (index == 2) { // 🆕 Если перешли на вкладку профиля
+                  _profileScreenKey.currentState?.loadProfile(); // Вызываем обновление!
                 }
               },
               type: BottomNavigationBarType.fixed,

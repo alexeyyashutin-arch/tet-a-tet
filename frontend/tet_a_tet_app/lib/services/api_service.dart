@@ -421,5 +421,30 @@ class ApiService {
       print('❌ Ошибка пометки откликов как прочитанных: $e');
       return false;
     }
+  }
+
+  // 🆕 Установить фото как аватарку
+  Future<bool> setAvatar(String photoId) async {
+    try {
+      await _dio.put('/users/avatar', data: {'photo_id': photoId});
+      return true;
+    } catch (e) {
+      print('❌ Ошибка установки аватарки: $e');
+      return false;
+    }
+  }
+
+  // 🆕 Изменить порядок фото
+  Future<bool> reorderPhotos(String albumType, List<String> photoIds) async {
+    try {
+      await _dio.put('/photos/reorder', data: {
+        'album_type': albumType,
+        'photo_ids': photoIds,
+      });
+      return true;
+    } catch (e) {
+      print('❌ Ошибка изменения порядка фото: $e');
+      return false;
+    }
   } 
 }

@@ -56,7 +56,7 @@ class Photo(Base):
     album_type = Column(String(10), nullable=False)  # "public" или "private"
     url = Column(String(255), nullable=False)
     uploaded_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
-    
+    order_index = Column(Integer, default=0) 
     owner = relationship("User", back_populates="photos")
 
 class AlbumAccess(Base):

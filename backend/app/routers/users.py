@@ -134,3 +134,28 @@ async def update_fcm_token(
     await db.commit()
     
     return {"message": "FCM токен успешно сохранен"}
+
+# 🆕 Установить фото как аватарку
+@router.put("/avatar")
+async def set_avatar(
+    data: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    photo_id = data.get('photo_id')
+    if not photo_id:
+        raise HTTPException(status_code=400, detail="photo_id обязателен")
+    
+    # Находим фото
+    stmt = select(Photo).where(Photo.id == photo_id, Photo.user_id == current_user.id)
+    result = await db.execute(stmt)
+    photo = result.scalar_one_or_none()
+    
+    if not photo:
+        raise HTTPException(status_code=404, detail="Фото не найдено")
+    
+    # Обновляем аватарку
+    current_user.avatar_url = photo.url
+    await db.commit()
+    
+    return {"message": "Аватарка обновлена"}
