@@ -7,7 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../widgets/background_pattern.dart';
 import 'package:reorderable_grid_view/reorderable_grid_view.dart';
-import 'dart:async'; // 🆕 Нужно для работы таймера
+import 'dart:async';
 
 class AlbumsScreen extends StatefulWidget {
   final String? userId;
@@ -23,7 +23,7 @@ class AlbumsScreen extends StatefulWidget {
   State<AlbumsScreen> createState() => _AlbumsScreenState();
 }
 
-class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderStateMixin {
+class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMixin {
   final _api = ApiService();
   late TabController _tabController;
   
@@ -34,14 +34,13 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
   String? _error;
   String? _currentUserId;
   
-  bool _isEditMode = false; // 🆕 Режим редактирования
+  bool _isEditMode = false;
 
   @override
   void initState() {
-    super.initState; 
+    super.initState(); // 🆕 Исправила опечатку (было super.initState;)
     _tabController = TabController(length: 2, vsync: this);
     
-    // 🆕 Сбрасываем режим редактирования при смене вкладки
     _tabController.addListener(() {
       if (_isEditMode) {
         setState(() {
@@ -166,7 +165,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.black,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight + 48.0), // Высота AppBar + TabBar
+        preferredSize: const Size.fromHeight(kToolbarHeight + 48.0),
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -216,16 +215,13 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
                 onPressed: () {
                   setState(() {
                     _isEditMode = !_isEditMode;
-                    // Если вышли из режима редактирования, сохраняем порядок
                     if (!_isEditMode) {
-                      // Определяем текущую вкладку: 0 - public, 1 - private
                       final currentAlbumType = _tabController.index == 0 ? 'public' : 'private';
                       final currentPhotos = _tabController.index == 0 ? _publicPhotos : _privatePhotos;
                       _savePhotoOrder(currentAlbumType, currentPhotos);
                     }
                   });
                 },
-                // 🆕 Иконка меняется в зависимости от режима
                 child: Icon(
                   _isEditMode ? Icons.check : Icons.edit_outlined,
                   color: Colors.black,
@@ -238,12 +234,9 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
   }
 
   Widget _buildAlbumTab(String albumType, List<dynamic> photos, bool isLoading) {
-    // SafeArea автоматически отодвинет контент от статус-бара (часов).
-    // Padding(top: 112) опустит его ровно под AppBar (56) + TabBar (48) + 8px воздуха.
-    // Padding(bottom: 80) поднимет контент над нижним меню.
     return SafeArea(
       top: true,
-      bottom: false, // Кнопка "+" сама позаботится о нижнем отступе
+      bottom: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 10.0, 16, 80.0),
         child: _buildInnerContent(albumType, photos, isLoading),
@@ -279,92 +272,95 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
       );
     }
 
-    // 🆕 В режиме редактирования используем ReorderableGridView
     if (_isEditMode) {
       return _buildReorderableGrid(albumType, photos);
     }
     
-    // 🆕 В обычном режиме используем обычный GridView
     return _buildNormalGrid(albumType, photos);
   }
 
-  // 🆕 Обычная сетка (без перетаскивания)
   Widget _buildNormalGrid(String albumType, List<dynamic> photos) {
     List<Widget> gridChildren = [];
 
-    // Добавляем все фото
     for (int i = 0; i < photos.length; i++) {
       final photo = photos[i];
       gridChildren.add(
-        GestureDetector(
-          key: ValueKey(photo['id']),
-          onTap: () {
-            _showPhotoDialog(photo['url'], i, albumType);
-          },
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Stack(
-              children: [
-                CachedNetworkImage(
-                  imageUrl: '${ApiService.baseUrl}${photo['url']}',
-                  width: double.infinity,
-                  height: double.infinity,
-                  fit: BoxFit.cover,
-                  memCacheWidth: 300,
-                  placeholder: (context, url) => Container(
-                    color: const Color(0xFF1E1E1E),
-                    child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37), strokeWidth: 2)),
-                  ),
-                  errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.red),
-                ),
-                // Звёздочка аватарки
-                if (i == 0 && albumType == 'public')
-                  Positioned(
-                    top: 6,
-                    left: 6,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFD4AF37),
-                        shape: BoxShape.circle,
+        AnimatedGridItem( // 🆕 Магия каскадной анимации здесь!
+          index: i,
+          child: GestureDetector(
+            key: ValueKey(photo['id']),
+            onTap: () {
+              _showPhotoDialog(photo['url'], i, albumType);
+            },
+            child: Hero(
+              tag: 'photo_${albumType}_$i',
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  children: [
+                    CachedNetworkImage(
+                      imageUrl: '${ApiService.baseUrl}${photo['url']}',
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                      memCacheWidth: 300,
+                      placeholder: (context, url) => Container(
+                        color: const Color(0xFF1E1E1E),
+                        child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37), strokeWidth: 2)),
                       ),
-                      child: const Icon(Icons.star, color: Colors.black, size: 14),
+                      errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.red),
                     ),
-                  ),
-              ],
+                    if (i == 0 && albumType == 'public')
+                      Positioned(
+                        top: 6,
+                        left: 6,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFD4AF37),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.star, color: Colors.black, size: 14),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
       );
     }
 
-    // Добавляем кнопку "Добавить"
     if (widget.isMyProfile) {
       gridChildren.add(
-        GestureDetector(
-          key: const ValueKey('add_photo_placeholder'),
-          onTap: _showAlbumTypeDialog,
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.6), width: 2),
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.black.withValues(alpha: 0.2),
-            ),
-            child: const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add_a_photo, color: Color(0xFFD4AF37), size: 36),
-                  SizedBox(height: 4),
-                  Text(
-                    'Добавить',
-                    style: TextStyle(
-                      color: Color(0xFFD4AF37),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+        AnimatedGridItem(
+          index: photos.length,
+          child: GestureDetector(
+            key: const ValueKey('add_photo_placeholder'),
+            onTap: _showAlbumTypeDialog,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.6), width: 2),
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.black.withValues(alpha: 0.2),
+              ),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add_a_photo, color: Color(0xFFD4AF37), size: 36),
+                    SizedBox(height: 4),
+                    Text(
+                      'Добавить',
+                      style: TextStyle(
+                        color: Color(0xFFD4AF37),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -381,7 +377,6 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
     );
   }
 
-  // 🆕 Сетка с перетаскиванием (только для режима редактирования)
   Widget _buildReorderableGrid(String albumType, List<dynamic> photos) {
     List<Widget> gridChildren = [];
 
@@ -406,7 +401,6 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
                   ),
                   errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.red),
                 ),
-                // Затемнение и иконка перетаскивания
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.5),
@@ -416,7 +410,6 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
                     child: Icon(Icons.drag_indicator, color: Color(0xFFD4AF37), size: 40),
                   ),
                 ),
-                // Кнопка удаления
                 if (widget.isMyProfile)
                   Positioned(
                     top: 8,
@@ -455,11 +448,6 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
     );
   }
 
-
-
-
-
-  // 🆕 Сохраняем новый порядок на сервер
   Future<void> _savePhotoOrder(String albumType, List<dynamic> photos) async {
     final photoIds = photos.map((p) => p['id'].toString()).toList();
     final success = await _api.reorderPhotos(albumType, photoIds);
@@ -509,7 +497,6 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
             backgroundColor: Colors.black,
             body: Stack(
               children: [
-                // Фото с Hero-анимацией
                 Center(
                   child: Hero(
                     tag: 'photo_${albumType}_$index',
@@ -526,7 +513,6 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
                     ),
                   ),
                 ),
-                // Кнопка закрытия
                 Positioned(
                   top: MediaQuery.of(context).padding.top + 16,
                   right: 16,
@@ -535,7 +521,6 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
-                // 🆕 Кнопка "Сделать аватаркой" (только для своего профиля и публичного альбома)
                 if (widget.isMyProfile && albumType == 'public')
                   Positioned(
                     bottom: MediaQuery.of(context).padding.bottom + 24,
@@ -574,20 +559,56 @@ class _AlbumsScreenState extends State<AlbumsScreen> with SingleTickerProviderSt
           );
         },
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: child,
-          );
+          return child;
         },
       ),
     );
   }
 
-
-
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+}
+
+// 🆕 Отдельный виджет для каскадной анимации (вне класса _AlbumsScreenState)
+class AnimatedGridItem extends StatefulWidget {
+  final Widget child;
+  final int index;
+
+  const AnimatedGridItem({Key? key, required this.child, required this.index}) : super(key: key);
+
+  @override
+  State<AnimatedGridItem> createState() => _AnimatedGridItemState();
+}
+
+class _AnimatedGridItemState extends State<AnimatedGridItem> {
+  double _opacity = 0.0;
+  double _offsetY = 30.0;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration(milliseconds: widget.index * 60), () {
+      if (mounted) {
+        setState(() {
+          _opacity = 1.0;
+          _offsetY = 0.0;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 400),
+      opacity: _opacity,
+      child: Transform.translate(
+        offset: Offset(0, _offsetY),
+        child: widget.child,
+      ),
+    );
   }
 }
