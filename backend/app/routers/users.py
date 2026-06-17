@@ -159,3 +159,36 @@ async def set_avatar(
     await db.commit()
     
     return {"message": "Аватарка обновлена"}
+
+# 🆕 Сохранить настройки уведомлений
+@router.put("/notification-settings")
+async def update_notification_settings(
+    settings: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    notify_responses = settings.get("notify_responses")
+    notify_messages = settings.get("notify_messages")
+    
+    if notify_responses is not None:
+        current_user.notify_responses = notify_responses
+    if notify_messages is not None:
+        current_user.notify_messages = notify_messages
+    
+    await db.commit()
+    
+    return {
+        "message": "Настройки уведомлений обновлены",
+        "notify_responses": current_user.notify_responses,
+        "notify_messages": current_user.notify_messages
+    }
+
+# 🆕 Получить настройки уведомлений
+@router.get("/notification-settings")
+async def get_notification_settings(
+    current_user: User = Depends(get_current_user),
+):
+    return {
+        "notify_responses": current_user.notify_responses,
+        "notify_messages": current_user.notify_messages
+    }

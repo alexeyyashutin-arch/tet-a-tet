@@ -61,12 +61,12 @@ async def create_response(
         today = date.today()
         age = today.year - current_user.birth_date.year - ((today.month, today.day) < (current_user.birth_date.month, current_user.birth_date.day))
 
-        # 🆕 Отправляем Push-уведомление автору встречи!
+    # 🆕 Отправляем Push-уведомление автору встречи!
     from app.services.push_service import send_push_notification
     
     # Находим автора встречи, чтобы взять его токен
     creator = await db.get(User, meeting.user_id)
-    if creator and creator.fcm_token:
+    if creator and creator.fcm_token and creator.notify_responses:  # 🆕 Проверяем notify_responses!
         await send_push_notification(
             fcm_token=creator.fcm_token,
             title="Новый отклик! 💕",

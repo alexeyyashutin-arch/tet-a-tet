@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../widgets/background_pattern.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -82,6 +83,19 @@ class ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               actions: [
+                // 🆕 Кнопка настроек (шестерёнка)
+                IconButton(
+                  icon: const Icon(Icons.settings, color: Color(0xFFD4AF37)),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                // Карандаш (редактирование)
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.white),
                   onPressed: () {
@@ -93,6 +107,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                     ).then((_) => loadProfile());
                   },
                 ),
+                // Выход
                 IconButton(
                   icon: const Icon(Icons.logout, color: Colors.white),
                   onPressed: () async {

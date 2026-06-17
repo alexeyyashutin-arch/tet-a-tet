@@ -40,7 +40,11 @@ class User(Base):
     has_children = Column(String(10), nullable=True)       # "Есть", "Нет"
    #  Токен для Push-уведомлений
     fcm_token = Column(Text, nullable=True)
-
+ 
+    # 🆕 Настройки уведомлений
+    notify_responses = Column(Boolean, default=True, nullable=False)  # Уведомления об откликах
+    notify_messages = Column(Boolean, default=True, nullable=False)   # Уведомления о сообщениях
+ 
     # Связи с фото
     photos = relationship("Photo", back_populates="owner", cascade="all, delete-orphan")
     granted_access = relationship("AlbumAccess", foreign_keys="AlbumAccess.owner_id", back_populates="owner", cascade="all, delete-orphan")

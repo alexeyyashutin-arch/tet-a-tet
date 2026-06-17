@@ -84,15 +84,16 @@ async def send_message(
     
     # Отправляем push всем участникам (кроме отправителя)
     for participant in participants:
-        await send_push_notification(
-            fcm_token=participant.fcm_token,
-            title="Новое сообщение 💬",
-            body=f"{current_user.username}: {data.text[:50]}{'...' if len(data.text) > 50 else ''}",
-            data={
-                "type": "new_message",
-                "meeting_id": str(data.meeting_id)
-            }
-        )
+        if participant.notify_messages:  # 🆕 Проверяем notify_messages!
+            await send_push_notification(
+                fcm_token=participant.fcm_token,
+                title="Новое сообщение 💬",
+                body=f"{current_user.username}: {data.text[:50]}{'...' if len(data.text) > 50 else ''}",
+                data={
+                    "type": "new_message",
+                    "meeting_id": str(data.meeting_id)
+                }
+            )
 
     return MessageResponse(
         id=new_message.id,

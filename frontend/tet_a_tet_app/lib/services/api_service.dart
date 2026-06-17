@@ -446,5 +446,31 @@ class ApiService {
       print('❌ Ошибка изменения порядка фото: $e');
       return false;
     }
-  } 
+  }
+
+  // 🆕 Сохранить настройки уведомлений на сервере
+  Future<bool> updateNotificationSettings({bool? notifyResponses, bool? notifyMessages}) async {
+    try {
+      final data = <String, dynamic>{};
+      if (notifyResponses != null) data['notify_responses'] = notifyResponses;
+      if (notifyMessages != null) data['notify_messages'] = notifyMessages;
+      
+      final response = await _dio.put('/users/notification-settings', data: data);
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Ошибка сохранения настроек уведомлений: $e');
+      return false;
+    }
+  }
+
+  // 🆕 Получить настройки уведомлений с сервера
+  Future<Map<String, dynamic>?> getNotificationSettings() async {
+    try {
+      final response = await _dio.get('/users/notification-settings');
+      return response.data;
+    } catch (e) {
+      print('❌ Ошибка получения настроек уведомлений: $e');
+      return null;
+    }
+  }
 }
