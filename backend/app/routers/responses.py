@@ -70,7 +70,11 @@ async def create_response(
         await send_push_notification(
             fcm_token=creator.fcm_token,
             title="Новый отклик! 💕",
-            body=f"{current_user.username} хочет пойти на '{meeting.title}'"
+            body=f"{current_user.username} хочет пойти на '{meeting.title}'",
+            data={
+                "type": "new_response",
+                "meeting_id": str(meeting.id)
+            }
         )
 
     return MeetingResponseInfo(

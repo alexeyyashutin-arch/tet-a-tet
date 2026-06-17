@@ -13,7 +13,7 @@ def initialize_firebase():
 # Убедимся, что Firebase инициализирован
 initialize_firebase()
 
-async def send_push_notification(fcm_token: str, title: str, body: str):
+async def send_push_notification(fcm_token: str, title: str, body: str, data: dict = None):
     """Отправляет Push-уведомление через Firebase Cloud Messaging API V1"""
     if not fcm_token:
         print("⚠️ FCM токен не найден")
@@ -24,9 +24,7 @@ async def send_push_notification(fcm_token: str, title: str, body: str):
             title=title,
             body=body,
         ),
-        data={
-            "click_action": "FLUTTER_NOTIFICATION_CLICK"
-        },
+        data=data or {},  # 🆕 Передаем дополнительные данные
         token=fcm_token,
     )
 

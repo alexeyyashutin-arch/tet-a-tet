@@ -6,6 +6,7 @@ import 'albums_screen.dart';
 import 'chat_list_screen.dart';
 import '../services/api_service.dart';
 import 'dart:ui';
+import '../services/push_notification_service.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -30,12 +31,44 @@ class _MainScreenState extends State<MainScreen> {
     _screens.addAll([
       const MeetingsFeedScreen(),
       const MyMeetingsScreen(),
-      ProfileScreen(key: _profileScreenKey), // 🆕 Передаём ключ!
+      ProfileScreen(key: _profileScreenKey),
       const AlbumsScreen(isMyProfile: true),
       const ChatListScreen(),
     ]);
     _updateUnreadChatsCount();
     _updateUnreadResponsesCount();
+    
+    // 🆕 Регистрируем обработчик навигации по уведомлениям
+    PushNotificationService.onNavigation(_handlePushNavigation);
+    
+    // 🆕 Проверяем, не было ли открытия через уведомление
+    final pendingNav = PushNotificationService.getPendingNavigation();
+    if (pendingNav != null) {
+      _handlePushNavigation(pendingNav);
+      PushNotificationService.clearPendingNavigation();
+    }
+  }
+
+  // 🆕 Обработчик навигации по push-уведомлениям
+  void _handlePushNavigation(Map<String, dynamic> data) {
+    final type = data['type'];
+    final meetingId = data['meeting_id'];
+    
+    print('🧭 Навигация по уведомлению: type=$type, meeting_id=$meetingId');
+    
+    if (type == 'new_message' && meetingId != null) {
+      // 🆕 Просто переключаемся на вкладку чатов — нужный чат будет сверху!
+      setState(() {
+        _currentIndex = 4; // Вкладка "Чаты"
+      });
+      _updateUnreadChatsCount();
+    } else if (type == 'new_response' && meetingId != null) {
+      // Переходим на вкладку "Моё" со списком откликов
+      setState(() {
+        _currentIndex = 1; // Вкладка "Моё"
+      });
+      _updateUnreadResponsesCount();
+    }
   }
 
   // 🆕 Метод для обновления счётчика непрочитанных чатов

@@ -55,7 +55,45 @@ async def send_message(
     db.add(new_message)
     await db.commit()
     await db.refresh(new_message)
+
+    # 🆕 Отправляем Push-уведомление другим участникам чата
+    from app.services.push_service import send_push_notification
     
+    # Находим всех участников чата
+    participants = []
+    
+    # 1. Автор встречи
+    if meeting.user_id != current_user.id:
+        author = await db.get(User, meeting.user_id)
+        if author and author.fcm_token:
+            participants.append(author)
+    
+    # 2. Тот, кто откликнулся (если отправитель — автор встречи)
+    if is_author:
+        stmt = select(MeetingResponse).where(
+            MeetingResponse.meeting_id == data.meeting_id,
+            MeetingResponse.status.in_(["pending", "accepted", "confirmed"])
+        ).limit(1)
+        result = await db.execute(stmt)
+        responder_response = result.scalar_one_or_none()
+        
+        if responder_response:
+            responder = await db.get(User, responder_response.user_id)
+            if responder and responder.fcm_token and responder.id != current_user.id:
+                participants.append(responder)
+    
+    # Отправляем push всем участникам (кроме отправителя)
+    for participant in participants:
+        await send_push_notification(
+            fcm_token=participant.fcm_token,
+            title="Новое сообщение 💬",
+            body=f"{current_user.username}: {data.text[:50]}{'...' if len(data.text) > 50 else ''}",
+            data={
+                "type": "new_message",
+                "meeting_id": str(data.meeting_id)
+            }
+        )
+
     return MessageResponse(
         id=new_message.id,
         meeting_id=new_message.meeting_id,

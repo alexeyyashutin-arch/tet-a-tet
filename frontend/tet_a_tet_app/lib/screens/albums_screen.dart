@@ -577,7 +577,7 @@ class AnimatedGridItem extends StatefulWidget {
   final Widget child;
   final int index;
 
-  const AnimatedGridItem({Key? key, required this.child, required this.index}) : super(key: key);
+  const AnimatedGridItem({super.key, required this.child, required this.index});
 
   @override
   State<AnimatedGridItem> createState() => _AnimatedGridItemState();
