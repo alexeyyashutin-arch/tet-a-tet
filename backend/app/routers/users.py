@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date
 from sqlalchemy import select
 from ..database import get_db
-from ..models import User, Photo
+from ..models import User, Photo, VerificationRequest, AlbumAccess
 from ..schemas import UserProfile, UserUpdate
 from ..dependencies import get_current_user
 
@@ -192,3 +192,86 @@ async def get_notification_settings(
         "notify_responses": current_user.notify_responses,
         "notify_messages": current_user.notify_messages
     }
+
+# 🆕 Удалить аккаунт (анонимизация)
+@router.delete("/me")
+async def delete_account(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Анонимизация аккаунта: удаляем персональные данные,
+    но оставляем встречи, сообщения и отклики.
+    """
+    print(f"🗑️ Начинаем анонимизацию аккаунта: {current_user.phone}")
+    
+    # 1. Удаляем все фото пользователя с диска
+    stmt = select(Photo).where(Photo.user_id == current_user.id)
+    result = await db.execute(stmt)
+    photos = result.scalars().all()
+    
+    for photo in photos:
+        # Удаляем файл с диска
+        if photo.url and photo.url.startswith('/uploads/'):
+            filepath = f"uploads/{photo.url.replace('/uploads/', '')}"
+            if os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                    print(f"🗑️ Удалён файл: {filepath}")
+                except Exception as e:
+                    print(f"❌ Ошибка удаления файла {filepath}: {e}")
+        await db.delete(photo)
+    print(f"🗑️ Удалено фото: {len(photos)}")
+    
+    # 2. Удаляем все заявки на верификацию
+    stmt = select(VerificationRequest).where(VerificationRequest.user_id == current_user.id)
+    result = await db.execute(stmt)
+    verification_requests = result.scalars().all()
+    
+    for req in verification_requests:
+        # Удаляем фото верификации с диска
+        if req.photo_url and req.photo_url.startswith('/uploads/'):
+            filepath = f"uploads/{req.photo_url.replace('/uploads/', '')}"
+            if os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                    print(f"🗑️ Удалён файл верификации: {filepath}")
+                except Exception as e:
+                    print(f"❌ Ошибка удаления файла {filepath}: {e}")
+        await db.delete(req)
+    print(f"🗑️ Удалено заявок на верификацию: {len(verification_requests)}")
+    
+    # 3. Удаляем доступы к альбомам
+    stmt = select(AlbumAccess).where(
+        (AlbumAccess.owner_id == current_user.id) | (AlbumAccess.granted_to_id == current_user.id)
+    )
+    result = await db.execute(stmt)
+    accesses = result.scalars().all()
+    for access in accesses:
+        await db.delete(access)
+    print(f"🗑️ Удалено доступов к альбомам: {len(accesses)}")
+    
+    # 4. Анонимизируем пользователя
+    current_user.username = "Пользователь удалён"
+    current_user.bio = None
+    current_user.avatar_url = None
+    current_user.birth_date = None
+    current_user.gender = None
+    current_user.city = None
+    current_user.latitude = None
+    current_user.longitude = None
+    current_user.height = None
+    current_user.weight = None
+    current_user.body_type = None
+    current_user.alcohol_attitude = None
+    current_user.smoking_attitude = None
+    current_user.marital_status = None
+    current_user.has_children = None
+    current_user.fcm_token = None
+    current_user.is_verified = False
+    
+    await db.commit()
+    
+    print(f"✅ Аккаунт анонимизирован: {current_user.phone}")
+    
+    return {"message": "Аккаунт успешно удалён"}

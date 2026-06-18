@@ -485,14 +485,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Text('Отмена', style: GoogleFonts.montserrat(color: Colors.white54)),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Функция в разработке 🛠️'),
-                  backgroundColor: Colors.redAccent,
+              
+              // Показываем индикатор загрузки
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(
+                  child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
                 ),
               );
+              
+              final success = await _api.deleteAccount();
+              
+              if (mounted) {
+                Navigator.pop(context); // Закрываем индикатор
+                
+                if (success) {
+                  // Успех — переходим на экран входа
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false,
+                  );
+                } else {
+                  // Ошибка
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Ошибка удаления аккаунта'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+              }
             },
             child: Text('Удалить', style: GoogleFonts.montserrat(color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),

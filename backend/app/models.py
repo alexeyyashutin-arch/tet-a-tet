@@ -11,6 +11,7 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     phone = Column(String(20), unique=True, index=True, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
+    is_admin = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     
     # Поля для SMS-кода и защиты
@@ -138,3 +139,27 @@ class Message(Base):
     text = Column(Text, nullable=False)
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+class VerificationRequest(Base):
+    __tablename__ = "verification_requests"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    
+    # Статус: "pending" (на рассмотрении), "approved" (одобрена), "rejected" (отклонена)
+    status = Column(String(20), nullable=False, default="pending")
+    
+    # URL загруженного фото (селфи с документом или просто селфи)
+    photo_url = Column(String(255), nullable=False)
+    
+    # Комментарий админа (при отклонении)
+    admin_comment = Column(Text, nullable=True)
+    
+    # Даты
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    reviewed_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    
+    # Связи
+    user = relationship("User", foreign_keys=[user_id], backref="verification_requests")
+    reviewer = relationship("User", foreign_keys=[reviewed_by])

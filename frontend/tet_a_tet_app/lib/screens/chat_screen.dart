@@ -203,6 +203,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildMessageBubble(Map<String, dynamic> msg) {
     // Определяем, своё ли это сообщение
     final bool isMe = msg['sender_id'] == _myUserId;
+    final bool isRead = msg['is_read'] ?? false; // 🆕 Статус прочтения
     final timeStr = DateFormat('HH:mm').format(DateTime.parse(msg['created_at']));
 
     return Align(
@@ -231,12 +232,26 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              timeStr,
-              style: GoogleFonts.montserrat(
-                color: isMe ? Colors.black54 : Colors.grey,
-                fontSize: 10,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  timeStr,
+                  style: GoogleFonts.montserrat(
+                    color: isMe ? Colors.black54 : Colors.grey,
+                    fontSize: 10,
+                  ),
+                ),
+                // 🆕 Галочки прочтения (только для своих сообщений)
+                if (isMe) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    isRead ? Icons.done_all : Icons.done,
+                    size: 14,
+                    color: isRead ? Colors.black : Colors.black54,
+                  ),
+                ],
+              ],
             ),
           ],
         ),

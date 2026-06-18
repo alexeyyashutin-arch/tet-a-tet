@@ -9,6 +9,7 @@ from .routers import photos
 from .routers import meetings
 from .routers import responses
 from .routers import messages
+from .routers import verification
 
 app = FastAPI(
     title="TET-A-TET API",
@@ -30,6 +31,7 @@ app.include_router(photos.router)
 app.include_router(meetings.router)
 app.include_router(responses.router)
 app.include_router(messages.router)
+app.include_router(verification.router)
 
 # 🆕 Раздаём статические файлы (наши аватарки) по адресу /uploads
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

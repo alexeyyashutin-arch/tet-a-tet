@@ -201,6 +201,16 @@ async def get_my_chats(
     
     # Объединяем (убираем дубликаты)
     all_meetings = {m.id: m for m in my_meetings_as_author + my_meetings_as_responder}.values()
+
+    # 🆕 Фильтруем: оставляем только встречи с хотя бы одним сообщением
+    meetings_with_messages = []
+    for meeting in all_meetings:
+        stmt = select(Message).where(Message.meeting_id == meeting.id).limit(1)
+        result = await db.execute(stmt)
+        if result.scalar_one_or_none() is not None:
+            meetings_with_messages.append(meeting)
+
+    all_meetings = meetings_with_messages
     
     chats = []
     for meeting in all_meetings:

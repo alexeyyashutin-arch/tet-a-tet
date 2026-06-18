@@ -28,6 +28,27 @@ async def send_sms_code(data: SendCodeRequest, db: AsyncSession = Depends(get_db
         user = User(phone=data.phone)
         db.add(user)
         await db.flush()
+    elif user.username == "Пользователь удалён":
+        # 🆕 Если пользователь анонимизирован — сбрасываем все данные
+        print(f"🔄 Повторная регистрация анонимизированного пользователя: {data.phone}", flush=True)
+        user.username = None
+        user.bio = None
+        user.avatar_url = None
+        user.birth_date = None
+        user.gender = None
+        user.city = None
+        user.latitude = None
+        user.longitude = None
+        user.height = None
+        user.weight = None
+        user.body_type = None
+        user.alcohol_attitude = None
+        user.smoking_attitude = None
+        user.marital_status = None
+        user.has_children = None
+        user.fcm_token = None
+        user.is_verified = False
+        await db.commit()
 
     if user.blocked_until and user.blocked_until > datetime.now(timezone.utc):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Слишком много попыток. Попробуйте позже.")

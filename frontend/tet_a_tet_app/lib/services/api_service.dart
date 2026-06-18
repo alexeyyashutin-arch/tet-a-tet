@@ -473,4 +473,83 @@ class ApiService {
       return null;
     }
   }
+
+  // 🆕 Подать заявку на верификацию (загрузка фото)
+  Future<Map<String, dynamic>?> submitVerificationRequest(File imageFile) async {
+    try {
+      String fileName = imageFile.path.split('/').last;
+      FormData formData = FormData.fromMap({
+        "file": await MultipartFile.fromFile(imageFile.path, filename: fileName),
+      });
+      
+      final response = await _dio.post('/verification/request', data: formData);
+      return response.data;
+    } on DioException catch (e) {
+      print('❌ Ошибка подачи заявки на верификацию: ${e.response?.data}');
+      return {'error': e.response?.data?['detail'] ?? 'Ошибка отправки'};
+    } catch (e) {
+      print('❌ Общая ошибка верификации: $e');
+      return {'error': 'Ошибка приложения'};
+    }
+  }
+
+  // 🆕 Получить статус верификации
+  Future<Map<String, dynamic>?> getVerificationStatus() async {
+    try {
+      final response = await _dio.get('/verification/status');
+      return response.data;
+    } catch (e) {
+      print('❌ Ошибка получения статуса верификации: $e');
+      return null;
+    }
+  }
+
+  // 🆕 Получить список заявок на верификации (для админа)
+  Future<List<dynamic>?> getPendingVerifications() async {
+    try {
+      final response = await _dio.get('/verification/pending');
+      return response.data;
+    } catch (e) {
+      print('❌ Ошибка получения заявок: $e');
+      return null;
+    }
+  }
+
+  // 🆕 Одобрить заявку на верификацию
+  Future<bool> approveVerification(String requestId) async {
+    try {
+      final response = await _dio.post('/verification/$requestId/approve');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Ошибка одобрения заявки: $e');
+      return false;
+    }
+  }
+
+  // 🆕 Отклонить заявку на верификацию
+  Future<bool> rejectVerification(String requestId, {String? comment}) async {
+    try {
+      final response = await _dio.post(
+        '/verification/$requestId/reject',
+        queryParameters: comment != null ? {'comment': comment} : null,
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Ошибка отклонения заявки: $e');
+      return false;
+    }
+  }
+
+  // 🆕 Удалить аккаунт
+  Future<bool> deleteAccount() async {
+    try {
+      final response = await _dio.delete('/users/me');
+      // Удаляем токен из локального хранилища
+      await _storage.delete(key: 'auth_token');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Ошибка удаления аккаунта: $e');
+      return false;
+    }
+  }
 }

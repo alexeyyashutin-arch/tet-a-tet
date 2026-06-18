@@ -7,6 +7,7 @@ import '../widgets/background_pattern.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
+import 'verification_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -182,14 +183,35 @@ class ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             Icon(genderIcon, color: genderColor, size: 24),
                             const SizedBox(width: 10),
-                            Text(
-                              nameWithAge,
-                              style: GoogleFonts.montserrat(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  nameWithAge,
+                                  style: GoogleFonts.montserrat(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                if (_profile?['is_verified'] == true) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: LinearGradient(
+                                        colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.verified,
+                                      color: Colors.black,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
                         ),
@@ -242,6 +264,14 @@ class ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 ),
+              ),
+
+              const SizedBox(height: 24),
+
+                            // 🆕 🛡️ Блок верификации
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _buildVerificationCard(),
               ),
 
               const SizedBox(height: 24),
@@ -715,6 +745,84 @@ class ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // 🆕 Карточка верификации
+  Widget _buildVerificationCard() {
+    final isVerified = _profile?['is_verified'] ?? false;
+    
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const VerificationScreen(),
+          ),
+        ).then((_) => loadProfile());
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isVerified
+                ? [const Color(0xFFD4AF37).withValues(alpha: 0.15), const Color(0xFFFFD700).withValues(alpha: 0.05)]
+                : [Colors.white.withValues(alpha: 0.05), Colors.white.withValues(alpha: 0.02)],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isVerified 
+                ? const Color(0xFFD4AF37) 
+                : const Color(0xFFD4AF37).withValues(alpha: 0.3),
+            width: isVerified ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                isVerified ? Icons.verified : Icons.verified_outlined,
+                color: const Color(0xFFD4AF37),
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isVerified ? 'ВЕРИФИЦИРОВАНЫ' : 'ПОЛУЧИТЬ ВЕРИФИКАЦИЮ',
+                    style: GoogleFonts.montserrat(
+                      color: const Color(0xFFD4AF37),
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isVerified 
+                        ? 'Золотая галочка доверия активна' 
+                        : 'Повысьте доверие к своему профилю',
+                    style: GoogleFonts.montserrat(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Color(0xFFD4AF37), size: 24),
+          ],
+        ),
       ),
     );
   }
