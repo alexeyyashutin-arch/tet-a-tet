@@ -4,8 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
-import '../widgets/background_pattern.dart';
 import 'chat_screen.dart';
+import '../widgets/app_background.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -38,21 +38,23 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withValues(alpha: 0.3),
+              backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
               elevation: 0,
               title: Text(
                 'СООБЩЕНИЯ',
                 style: GoogleFonts.montserrat(
-                  color: Colors.white, 
+                  color: theme.primaryColor, 
                   fontWeight: FontWeight.bold, 
                   letterSpacing: 2.0, 
                   fontSize: 16
@@ -63,24 +65,34 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ),
         ),
       ),
-      body: BackgroundPattern(
+      body: AppBackground(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
+            ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
             : _chats.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.chat_bubble_outline, size: 64, color: Colors.white.withValues(alpha: 0.3)),
+                        Icon(
+                          Icons.chat_bubble_outline,
+                          size: 64,
+                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.3),
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'Пока нет активных чатов',
-                          style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 16),
+                          style: GoogleFonts.montserrat(
+                            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                            fontSize: 16,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Откликнись на встречу или прими чью-то заявку!',
-                          style: GoogleFonts.montserrat(color: Colors.white54, fontSize: 13),
+                          style: GoogleFonts.montserrat(
+                            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                            fontSize: 13,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -103,6 +115,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Widget _buildChatCard(Map<String, dynamic> chat) {
+    final theme = Theme.of(context);
     final meetingId = chat['meeting_id'];
     final meetingTitle = chat['meeting_title'] ?? 'Встреча';
     final opponentName = chat['opponent_name'] ?? 'Собеседник';
@@ -124,128 +137,125 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.5), width: 1),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChatScreen(
-                      meetingId: meetingId,
-                      meetingTitle: meetingTitle,
-                      opponentName: opponentName,
-                    ),
-                  ),
-                ).then((_) => _loadChats()); // Обновляем список после возврата из чата
-              },
-              child: Row(
-                children: [
-                  // Аватарка собеседника
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: const Color(0xFFD4AF37).withValues(alpha: 0.2),
-                    backgroundImage: opponentAvatar != null 
-                        ? CachedNetworkImageProvider('${ApiService.baseUrl}$opponentAvatar') 
-                        : null,
-                    child: opponentAvatar == null 
-                        ? const Icon(Icons.person, color: Color(0xFFD4AF37), size: 28) 
-                        : null,
-                  ),
-                  const SizedBox(width: 16),
-                  
-                  // Информация о чате
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.cardTheme.color,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.5), width: 1),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(
+                  meetingId: meetingId,
+                  meetingTitle: meetingTitle,
+                  opponentName: opponentName,
+                ),
+              ),
+            ).then((_) => _loadChats());
+          },
+          child: Row(
+            children: [
+              // Аватарка собеседника
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: theme.primaryColor.withValues(alpha: 0.2),
+                backgroundImage: opponentAvatar != null 
+                    ? CachedNetworkImageProvider('${ApiService.baseUrl}$opponentAvatar') 
+                    : null,
+                child: opponentAvatar == null 
+                    ? Icon(Icons.person, color: theme.primaryColor, size: 28) 
+                    : null,
+              ),
+              const SizedBox(width: 16),
+              
+              // Информация о чате
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                opponentName,
-                                style: GoogleFonts.montserrat(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                        Expanded(
+                          child: Text(
+                            opponentName,
+                            style: GoogleFonts.montserrat(
+                              color: theme.textTheme.bodyLarge?.color,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
                             ),
-                            if (timeStr.isNotEmpty)
-                              Text(
-                                timeStr,
-                                style: GoogleFonts.montserrat(
-                                  color: unreadCount > 0 ? const Color(0xFFD4AF37) : Colors.grey,
-                                  fontSize: 12,
-                                  fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'По поводу: $meetingTitle',
-                          style: GoogleFonts.montserrat(
-                            color: const Color(0xFFD4AF37),
-                            fontSize: 11,
-                            fontStyle: FontStyle.italic,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                lastMessage ?? 'Нет сообщений',
-                                style: GoogleFonts.montserrat(
-                                  color: unreadCount > 0 ? Colors.white : Colors.white70,
-                                  fontSize: 13,
-                                  fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                        if (timeStr.isNotEmpty)
+                          Text(
+                            timeStr,
+                            style: GoogleFonts.montserrat(
+                              color: unreadCount > 0 ? theme.primaryColor : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                              fontSize: 12,
+                              fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
                             ),
-                            if (unreadCount > 0) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.redAccent,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Text(
-                                  unreadCount > 9 ? '9+' : unreadCount.toString(),
-                                  style: GoogleFonts.montserrat(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                          ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'По поводу: $meetingTitle',
+                      style: GoogleFonts.montserrat(
+                        color: theme.primaryColor,
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            lastMessage ?? 'Нет сообщений',
+                            style: GoogleFonts.montserrat(
+                              color: unreadCount > 0 
+                                  ? theme.textTheme.bodyLarge?.color 
+                                  : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                              fontSize: 13,
+                              fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (unreadCount > 0) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: const BoxDecoration(
+                              color: Colors.redAccent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              unreadCount > 9 ? '9+' : unreadCount.toString(),
+                              style: GoogleFonts.montserrat(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

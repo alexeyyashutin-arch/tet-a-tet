@@ -66,4 +66,17 @@ class SettingsService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyLanguage, value);
   }
+
+  // 🆕 Тема приложения
+  static const String _keyTheme = 'app_theme'; // 'basic' или 'premium'
+
+  static Future<String> getTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyTheme) ?? 'basic';
+  }
+
+  static Future<void> setTheme(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyTheme, value);
+  }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
-import '../widgets/background_pattern.dart';
+import '../widgets/app_background.dart';
 import 'meeting_detail_screen.dart';
 import 'dart:ui';
 
@@ -63,9 +63,10 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
 
   // 🆕 Показываем красивый bottom sheet с фильтрами (один range slider!)
   void _showFilterSheet() {
+    final theme = Theme.of(context);
     int tempMinAge = _minAge ?? 18;
     int tempMaxAge = _maxAge ?? 80;
-    String? tempGender = _selectedGender; // 🆕 Временная переменная для пола
+    String? tempGender = _selectedGender;
 
     showModalBottomSheet(
       context: context,
@@ -73,170 +74,171 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.9),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                    border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            return Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: theme.scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                border: Border(
+                  top: BorderSide(color: theme.primaryColor.withValues(alpha: 0.3)),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Заголовок
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'ФИЛЬТРЫ',
-                            style: GoogleFonts.montserrat(
-                              color: const Color(0xFFD4AF37),
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white70),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // 🆕 СЕКЦИЯ: ПОЛ
                       Text(
-                        'КТО ТЕБЯ ИНТЕРЕСУЕТ?',
+                        'ФИЛЬТРЫ',
                         style: GoogleFonts.montserrat(
-                          color: Colors.white70,
-                          fontSize: 12,
+                          color: theme.primaryColor,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
+                          letterSpacing: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          _buildGenderButton('all', 'Все', Icons.transgender, tempGender, () {
-                            setState(() => tempGender = null);
-                          }),
-                          const SizedBox(width: 12),
-                          _buildGenderButton('male', 'Мужчины', Icons.male, tempGender, () {
-                            setState(() => tempGender = 'male');
-                          }),
-                          const SizedBox(width: 12),
-                          _buildGenderButton('female', 'Женщины', Icons.female, tempGender, () {
-                            setState(() => tempGender = 'female');
-                          }),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // СЕКЦИЯ: ВОЗРАСТ
-                      Text(
-                        'ВОЗРАСТНОЙ ДИАПАЗОН',
-                        style: GoogleFonts.montserrat(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Center(
-                        child: Text(
-                          '$tempMinAge — $tempMaxAge лет',
-                          style: GoogleFonts.montserrat(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Range Slider
-                      SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          activeTrackColor: const Color(0xFFD4AF37),
-                          inactiveTrackColor: const Color(0xFFD4AF37).withValues(alpha: 0.3),
-                          thumbColor: const Color(0xFFD4AF37),
-                          overlayColor: const Color(0xFFD4AF37).withValues(alpha: 0.2),
-                          valueIndicatorColor: const Color(0xFFD4AF37),
-                          valueIndicatorTextStyle: GoogleFonts.montserrat(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          rangeThumbShape: const RoundRangeSliderThumbShape(enabledThumbRadius: 10),
-                          rangeTrackShape: const RoundedRectRangeSliderTrackShape(),
-                        ),
-                        child: RangeSlider(
-                          values: RangeValues(tempMinAge.toDouble(), tempMaxAge.toDouble()),
-                          min: 18,
-                          max: 80,
-                          divisions: 62,
-                          labels: RangeLabels(tempMinAge.toString(), tempMaxAge.toString()),
-                          onChanged: (values) {
-                            setState(() {
-                              tempMinAge = values.start.toInt();
-                              tempMaxAge = values.end.toInt();
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // Кнопки действий
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _minAge = null;
-                                  _maxAge = null;
-                                  _selectedGender = null;
-                                });
-                                Navigator.pop(context);
-                                _loadMeetings();
-                              },
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Colors.white70),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              child: Text('СБРОСИТЬ', style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _minAge = tempMinAge == 18 ? null : tempMinAge;
-                                  _maxAge = tempMaxAge == 80 ? null : tempMaxAge;
-                                  _selectedGender = tempGender == 'all' ? null : tempGender;
-                                });
-                                Navigator.pop(context);
-                                _loadMeetings();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFD4AF37),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              child: Text('ПРИМЕНИТЬ', style: GoogleFonts.montserrat(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                        ],
+                      IconButton(
+                        icon: Icon(Icons.close, color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7)),
+                        onPressed: () => Navigator.pop(context),
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 24),
+                  
+                  Text(
+                    'КТО ТЕБЯ ИНТЕРЕСУЕТ?',
+                    style: GoogleFonts.montserrat(
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _buildGenderButton('all', 'Все', Icons.transgender, tempGender, () {
+                        setState(() => tempGender = null);
+                      }),
+                      const SizedBox(width: 12),
+                      _buildGenderButton('male', 'Мужчины', Icons.male, tempGender, () {
+                        setState(() => tempGender = 'male');
+                      }),
+                      const SizedBox(width: 12),
+                      _buildGenderButton('female', 'Женщины', Icons.female, tempGender, () {
+                        setState(() => tempGender = 'female');
+                      }),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  Text(
+                    'ВОЗРАСТНОЙ ДИАПАЗОН',
+                    style: GoogleFonts.montserrat(
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      '$tempMinAge — $tempMaxAge лет',
+                      style: GoogleFonts.montserrat(
+                        color: theme.textTheme.bodyLarge?.color,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      activeTrackColor: theme.primaryColor,
+                      inactiveTrackColor: theme.primaryColor.withValues(alpha: 0.3),
+                      thumbColor: theme.primaryColor,
+                      overlayColor: theme.primaryColor.withValues(alpha: 0.2),
+                      valueIndicatorColor: theme.primaryColor,
+                      valueIndicatorTextStyle: GoogleFonts.montserrat(
+                        color: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      rangeThumbShape: const RoundRangeSliderThumbShape(enabledThumbRadius: 10),
+                      rangeTrackShape: const RoundedRectRangeSliderTrackShape(),
+                    ),
+                    child: RangeSlider(
+                      values: RangeValues(tempMinAge.toDouble(), tempMaxAge.toDouble()),
+                      min: 18,
+                      max: 80,
+                      divisions: 62,
+                      labels: RangeLabels(tempMinAge.toString(), tempMaxAge.toString()),
+                      onChanged: (values) {
+                        setState(() {
+                          tempMinAge = values.start.toInt();
+                          tempMaxAge = values.end.toInt();
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              _minAge = null;
+                              _maxAge = null;
+                              _selectedGender = null;
+                            });
+                            Navigator.pop(context);
+                            _loadMeetings();
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7) ?? Colors.grey),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: Text('СБРОСИТЬ', style: GoogleFonts.montserrat(
+                            color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          )),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _minAge = tempMinAge == 18 ? null : tempMinAge;
+                              _maxAge = tempMaxAge == 80 ? null : tempMaxAge;
+                              _selectedGender = tempGender == 'all' ? null : tempGender;
+                            });
+                            Navigator.pop(context);
+                            _loadMeetings();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.primaryColor,
+                            foregroundColor: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: Text('ПРИМЕНИТЬ', style: GoogleFonts.montserrat(
+                            color: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          )),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             );
           },
@@ -247,29 +249,30 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
 
   // 🆕 Исправленный метод для кнопок пола
   Widget _buildGenderButton(String value, String label, IconData icon, String? selectedGender, VoidCallback onTap) {
+    final theme = Theme.of(context);
     final isSelected = (value == 'all' && selectedGender == null) || selectedGender == value;
     
     return Expanded(
       child: InkWell(
-        onTap: onTap, // 🆕 Теперь используем правильный колбэк!
+        onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFD4AF37).withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.3),
+            color: isSelected ? theme.primaryColor.withValues(alpha: 0.2) : theme.cardTheme.color,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? const Color(0xFFD4AF37) : Colors.white24,
+              color: isSelected ? theme.primaryColor : theme.dividerColor,
               width: isSelected ? 1.5 : 1,
             ),
           ),
           child: Column(
             children: [
-              Icon(icon, color: isSelected ? const Color(0xFFD4AF37) : Colors.white70, size: 24),
+              Icon(icon, color: isSelected ? theme.primaryColor : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), size: 24),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: GoogleFonts.montserrat(
-                  color: isSelected ? const Color(0xFFD4AF37) : Colors.white70,
+                  color: isSelected ? theme.primaryColor : theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
@@ -283,6 +286,8 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       extendBody: true,
       extendBodyBehindAppBar: true,
@@ -292,13 +297,13 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withValues(alpha: 0.2),
+              backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
               elevation: 0,
               centerTitle: true,
               title: Text(
                 'ВСТРЕЧИ',
                 style: GoogleFonts.montserrat(
-                  color: const Color(0xFFD4AF37),
+                  color: theme.primaryColor,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2.0,
                   fontSize: 20,
@@ -312,8 +317,8 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
                       icon: Icon(
                         Icons.tune,
                         color: (_minAge != null || _maxAge != null) 
-                            ? const Color(0xFFD4AF37) 
-                            : Colors.white70,
+                            ? theme.primaryColor 
+                            : theme.iconTheme.color?.withValues(alpha: 0.7) ?? Colors.grey,
                       ),
                       onPressed: _showFilterSheet,
                     ),
@@ -324,8 +329,8 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
                         child: Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFD4AF37),
+                          decoration: BoxDecoration(
+                            color: theme.primaryColor,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -333,7 +338,7 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.refresh, color: Color(0xFFD4AF37)),
+                  icon: Icon(Icons.refresh, color: theme.primaryColor),
                   onPressed: _loadMeetings,
                 ),
               ],
@@ -341,14 +346,14 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
           ),
         ),
       ),
-      body: BackgroundPattern(
+      body: AppBackground(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
+            ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
             : _meetings.isEmpty
                 ? _buildEmptyState()
                 : RefreshIndicator(
                     onRefresh: _loadMeetings,
-                    color: const Color(0xFFD4AF37),
+                    color: theme.primaryColor,
                     child: ListView.builder(
                       padding: EdgeInsets.fromLTRB(
                         16,
@@ -358,7 +363,6 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
                       ),
                       itemCount: _meetings.length,
                       itemBuilder: (context, index) {
-                        // 🆕 Оборачиваем каждую карточку в нашу анимацию!
                         return AnimatedMeetingCard(
                           index: index,
                           child: _buildMeetingCard(_meetings[index]),
@@ -371,16 +375,18 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
   }
 
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.event_busy, size: 80, color: Colors.grey),
+          Icon(Icons.event_busy, size: 80, color: theme.iconTheme.color?.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text(
             'Пока нет активных встреч',
             style: GoogleFonts.montserrat(
-              color: Colors.white,
+              color: theme.textTheme.bodyLarge?.color,
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
@@ -389,7 +395,7 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
           Text(
             'Будь первым, кто предложит встречу!',
             style: GoogleFonts.montserrat(
-              color: Colors.grey,
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
               fontSize: 14,
             ),
           ),
@@ -399,19 +405,19 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
   }
 
   Widget _buildMeetingCard(Map<String, dynamic> meeting) {
+    final theme = Theme.of(context);
     final formattedDate = _getFormattedDateTime(meeting['meeting_date'], meeting['meeting_time']);
     
     final isFemale = meeting['creator_gender'] == 'female' || meeting['creator_gender'] == 'ж';
     final IconData genderIcon = isFemale ? Icons.female : Icons.male;
     final Color genderColor = isFemale ? const Color(0xFFEC407A) : const Color(0xFF4FC3F7);
 
-    // 🆕 Заменяем GestureDetector на Material + InkWell для красивого эффекта нажатия
     return Material(
-      color: Colors.transparent, // Прозрачный фон, чтобы не перекрывать наш паттерн
+      color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        splashColor: const Color(0xFFD4AF37).withValues(alpha: 0.2), // 🌊 Золотая волна при клике
-        highlightColor: const Color(0xFFD4AF37).withValues(alpha: 0.1), // ✨ Легкое золотое свечение при удержании
+        splashColor: theme.primaryColor.withValues(alpha: 0.2),
+        highlightColor: theme.primaryColor.withValues(alpha: 0.1),
         onTap: () {
           Navigator.push(
             context,
@@ -420,86 +426,79 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
         },
         child: Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          // 🆕 Меняем ClipRect на ClipRRect, чтобы эффект нажатия обрезался по скруглениям!
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFFD4AF37).withValues(alpha: 0.5), 
-                    width: 1,
-                  ),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.cardTheme.color,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: theme.primaryColor.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(genderIcon, color: genderColor, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        meeting['title'],
+                        style: GoogleFonts.montserrat(
+                          color: theme.textTheme.bodyLarge?.color,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          height: 1.2,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
-                child: Column(
+                
+                const SizedBox(height: 12),
+                
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(genderIcon, color: genderColor, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            meeting['title'],
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              height: 1.2,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                    Icon(Icons.location_on, color: theme.primaryColor, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        meeting['location'] ?? 'Место не указано',
+                        style: GoogleFonts.montserrat(
+                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                          fontSize: 13,
+                          height: 1.3,
                         ),
-                      ],
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    
-                    const SizedBox(height: 12),
-                    
+                    const SizedBox(width: 12),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.location_on, color: Color(0xFFD4AF37), size: 16),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            meeting['location'] ?? 'Место не указано',
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white70, 
-                              fontSize: 13,
-                              height: 1.3,
-                            ),
-                            maxLines: 2, 
-                            overflow: TextOverflow.ellipsis,
+                        Icon(Icons.calendar_today, color: theme.primaryColor, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          formattedDate,
+                          style: GoogleFonts.montserrat(
+                            color: theme.primaryColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.calendar_today, color: Color(0xFFD4AF37), size: 14),
-                            const SizedBox(width: 4),
-                            Text(
-                              formattedDate,
-                              style: GoogleFonts.montserrat(
-                                color: const Color(0xFFD4AF37),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              textAlign: TextAlign.right,
-                            ),
-                          ],
+                          textAlign: TextAlign.right,
                         ),
                       ],
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
           ),
         ),

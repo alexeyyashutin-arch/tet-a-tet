@@ -93,110 +93,137 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isPremiumTheme = theme.brightness == Brightness.dark && theme.primaryColor == const Color(0xFFD4AF37);
+    
     return Scaffold(
       extendBody: true,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.2),
-            ),
-            child: BottomNavigationBar(
-              currentIndex: _currentIndex,
-              onTap: (index) {
-                setState(() => _currentIndex = index);
-                if (index == 4) {
-                  _updateUnreadChatsCount();
-                } else if (index == 1) {
-                  _updateUnreadResponsesCount();
-                } else if (index == 2) { // 🆕 Если перешли на вкладку профиля
-                  _profileScreenKey.currentState?.loadProfile(); // Вызываем обновление!
-                }
-              },
-              type: BottomNavigationBarType.fixed,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              selectedItemColor: const Color(0xFFD4AF37),
-              unselectedItemColor: Colors.grey,
-              showSelectedLabels: false,
-              showUnselectedLabels: false,
-              items: [
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.event, size: 28),
-                  label: 'Встречи',
-                ),
-                BottomNavigationBarItem( // 🆕 Иконка "Моё" с бейджиком откликов
-                  icon: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Icon(Icons.list_alt, size: 28),
-                      if (_totalUnreadResponses > 0)
-                        Positioned(
-                          right: -6,
-                          top: -6,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFD4AF37), // 🆕 Золотой цвет!
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                            child: Text(
-                              _totalUnreadResponses > 9 ? '9+' : _totalUnreadResponses.toString(),
-                              style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                    ],
+      bottomNavigationBar: isPremiumTheme
+          ? ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.2),
                   ),
-                  label: '',
+                  child: _buildBottomNavBar(context),
                 ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.person, size: 28),
-                  label: 'Профиль',
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.photo_library, size: 28),
-                  label: 'Альбом',
-                ),
-                BottomNavigationBarItem(
-                  icon: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Icon(Icons.chat_bubble_outline, size: 26),
-                      if (_totalUnreadChats > 0)
-                        Positioned(
-                          right: -6,
-                          top: -6,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.redAccent,
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                            child: Text(
-                              _totalUnreadChats > 9 ? '9+' : _totalUnreadChats.toString(),
-                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                    ],
+              ),
+            )
+          : Container(
+              decoration: BoxDecoration(
+                color: theme.scaffoldBackgroundColor,
+                border: Border(
+                  top: BorderSide(
+                    color: theme.dividerColor,
+                    width: 1,
                   ),
-                  label: '',
                 ),
-              ],
+              ),
+              child: _buildBottomNavBar(context),
             ),
-          ),
+    );
+  }
+
+  // 🆕 Выносим BottomNavigationBar в отдельный метод
+  Widget _buildBottomNavBar(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return BottomNavigationBar(
+      currentIndex: _currentIndex,
+      onTap: (index) {
+        setState(() => _currentIndex = index);
+        if (index == 4) {
+          _updateUnreadChatsCount();
+        } else if (index == 1) {
+          _updateUnreadResponsesCount();
+        } else if (index == 2) {
+          _profileScreenKey.currentState?.loadProfile();
+        }
+      },
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      selectedItemColor: theme.primaryColor,
+      unselectedItemColor: theme.iconTheme.color?.withValues(alpha: 0.5) ?? Colors.grey,
+      showSelectedLabels: false,
+      showUnselectedLabels: false,
+      items: [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.event, size: 28, color: _currentIndex == 0 ? theme.primaryColor : null),
+          label: 'Встречи',
         ),
-      ),
+        BottomNavigationBarItem(
+          icon: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(Icons.list_alt, size: 28, color: _currentIndex == 1 ? theme.primaryColor : null),
+              if (_totalUnreadResponses > 0)
+                Positioned(
+                  right: -6,
+                  top: -6,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                    child: Text(
+                      _totalUnreadResponses > 9 ? '9+' : _totalUnreadResponses.toString(),
+                      style: TextStyle(
+                        color: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          label: '',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person, size: 28, color: _currentIndex == 2 ? theme.primaryColor : null),
+          label: 'Профиль',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.photo_library, size: 28, color: _currentIndex == 3 ? theme.primaryColor : null),
+          label: 'Альбом',
+        ),
+        BottomNavigationBarItem(
+          icon: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(Icons.chat_bubble_outline, size: 26, color: _currentIndex == 4 ? theme.primaryColor : null),
+              if (_totalUnreadChats > 0)
+                Positioned(
+                  right: -6,
+                  top: -6,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.redAccent,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                    child: Text(
+                      _totalUnreadChats > 9 ? '9+' : _totalUnreadChats.toString(),
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          label: '',
+        ),
+      ],
     );
   }
 }

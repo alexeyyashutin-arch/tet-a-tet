@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/api_service.dart';
-import '../widgets/background_pattern.dart';
+import '../widgets/app_background.dart';
 
 class VerificationScreen extends StatefulWidget {
   const VerificationScreen({super.key});
@@ -80,10 +80,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
       
       if (result != null && result['error'] == null) {
         // Успех!
+        final theme = Theme.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Заявка отправлена! Ожидайте проверки ✨'),
-            backgroundColor: Color(0xFFD4AF37),
+          SnackBar(
+            content: const Text('Заявка отправлена! Ожидайте проверки ✨'),
+            backgroundColor: theme.primaryColor,
           ),
         );
         _loadStatus();
@@ -102,26 +103,28 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withValues(alpha: 0.3),
+              backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
               elevation: 0,
               centerTitle: true,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios, color: Color(0xFFD4AF37)),
+                icon: Icon(Icons.arrow_back_ios, color: theme.primaryColor),
                 onPressed: () => Navigator.pop(context),
               ),
               title: Text(
                 'ВЕРИФИКАЦИЯ',
                 style: GoogleFonts.montserrat(
-                  color: Colors.white,
+                  color: theme.textTheme.bodyLarge?.color,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2.0,
                   fontSize: 16,
@@ -131,10 +134,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
           ),
         ),
       ),
-      body: BackgroundPattern(
+      body: AppBackground(
         child: SafeArea(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
+              ? Center(child: CircularProgressIndicator(color: theme.primaryColor))
               : _buildContent(),
         ),
       ),
@@ -163,6 +166,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   // ✅ Уже верифицирован
   Widget _buildVerifiedContent() {
+    final theme = Theme.of(context);
+    
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -173,24 +178,24 @@ class _VerificationScreenState extends State<VerificationScreen> {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
+                gradient: LinearGradient(
+                  colors: [theme.primaryColor, theme.primaryColor.withValues(alpha: 0.7)],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+                    color: theme.primaryColor.withValues(alpha: 0.4),
                     blurRadius: 30,
                     spreadRadius: 5,
                   ),
                 ],
               ),
-              child: const Icon(Icons.verified, color: Colors.black, size: 80),
+              child: Icon(Icons.verified, color: theme.scaffoldBackgroundColor, size: 80),
             ),
             const SizedBox(height: 32),
             Text(
               'ВЫ ВЕРИФИЦИРОВАНЫ!',
               style: GoogleFonts.montserrat(
-                color: const Color(0xFFD4AF37),
+                color: theme.primaryColor,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2.0,
@@ -201,7 +206,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
               'Теперь рядом с вашим именем будет красоваться золотая галочка доверия. Другие пользователи будут видеть, что вы — реальный человек!',
               textAlign: TextAlign.center,
               style: GoogleFonts.montserrat(
-                color: Colors.white70,
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                 fontSize: 14,
                 height: 1.5,
               ),
@@ -214,18 +219,20 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   // ⏳ Заявка на рассмотрении
   Widget _buildPendingContent() {
+    final theme = Theme.of(context);
+    
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.hourglass_empty, color: Color(0xFFD4AF37), size: 80),
+            Icon(Icons.hourglass_empty, color: theme.primaryColor, size: 80),
             const SizedBox(height: 32),
             Text(
               'ЗАЯВКА НА РАССМОТРЕНИИ',
               style: GoogleFonts.montserrat(
-                color: const Color(0xFFD4AF37),
+                color: theme.primaryColor,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2.0,
@@ -236,7 +243,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
               'Ваша заявка отправлена и скоро будет проверена нашей командой. Обычно это занимает от нескольких минут до 24 часов.',
               textAlign: TextAlign.center,
               style: GoogleFonts.montserrat(
-                color: Colors.white70,
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                 fontSize: 14,
                 height: 1.5,
               ),
@@ -246,7 +253,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
               Text(
                 'Подана: ${_formatDate(_createdAt!)}',
                 style: GoogleFonts.montserrat(
-                  color: Colors.white54,
+                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                   fontSize: 12,
                 ),
               ),
@@ -259,6 +266,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   // ❌ Заявка отклонена
   Widget _buildRejectedContent() {
+    final theme = Theme.of(context);
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -299,7 +308,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   Text(
                     _adminComment!,
                     style: GoogleFonts.montserrat(
-                      color: Colors.white,
+                      color: theme.textTheme.bodyLarge?.color,
                       fontSize: 14,
                     ),
                   ),
@@ -312,7 +321,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
             'Не переживайте! Вы можете подать новую заявку. Убедитесь, что на фото хорошо видно ваше лицо.',
             textAlign: TextAlign.center,
             style: GoogleFonts.montserrat(
-              color: Colors.white70,
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
               fontSize: 14,
               height: 1.5,
             ),
@@ -328,6 +337,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   // 📝 Форма подачи заявки
   Widget _buildFormContent() {
+    final theme = Theme.of(context);
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -339,11 +350,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                  color: theme.primaryColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.4)),
+                  border: Border.all(color: theme.primaryColor.withValues(alpha: 0.4)),
                 ),
-                child: const Icon(Icons.verified_outlined, color: Color(0xFFD4AF37), size: 32),
+                child: Icon(Icons.verified_outlined, color: theme.primaryColor, size: 32),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -353,7 +364,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     Text(
                       'ПОЛУЧИТЬ ГАЛОЧКУ',
                       style: GoogleFonts.montserrat(
-                        color: const Color(0xFFD4AF37),
+                        color: theme.primaryColor,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.5,
@@ -363,7 +374,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     Text(
                       'Золотой знак доверия',
                       style: GoogleFonts.montserrat(
-                        color: Colors.white54,
+                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                         fontSize: 12,
                       ),
                     ),
@@ -379,9 +390,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: theme.cardTheme.color?.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.2)),
+              border: Border.all(color: theme.primaryColor.withValues(alpha: 0.2)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -389,7 +400,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 Text(
                   'Зачем нужна верификация?',
                   style: GoogleFonts.montserrat(
-                    color: Colors.white,
+                    color: theme.textTheme.bodyLarge?.color,
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
@@ -409,7 +420,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
           Text(
             'КАК ПРОЙТИ ВЕРИФИКАЦИЮ',
             style: GoogleFonts.montserrat(
-              color: const Color(0xFFD4AF37),
+              color: theme.primaryColor,
               fontSize: 13,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.5,
@@ -437,17 +448,19 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   Widget _buildBenefit(IconData icon, String text) {
+    final theme = Theme.of(context);
+    
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFFD4AF37), size: 18),
+          Icon(icon, color: theme.primaryColor, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
               style: GoogleFonts.montserrat(
-                color: Colors.white70,
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                 fontSize: 13,
               ),
             ),
@@ -458,6 +471,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   Widget _buildStep(int number, String text) {
+    final theme = Theme.of(context);
+    
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -468,14 +483,14 @@ class _VerificationScreenState extends State<VerificationScreen> {
             height: 24,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
-              border: Border.all(color: const Color(0xFFD4AF37)),
+              color: theme.primaryColor.withValues(alpha: 0.2),
+              border: Border.all(color: theme.primaryColor),
             ),
             child: Center(
               child: Text(
                 '$number',
                 style: GoogleFonts.montserrat(
-                  color: const Color(0xFFD4AF37),
+                  color: theme.primaryColor,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -489,7 +504,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
               child: Text(
                 text,
                 style: GoogleFonts.montserrat(
-                  color: Colors.white70,
+                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   fontSize: 13,
                 ),
               ),
@@ -501,17 +516,19 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   Widget _buildImagePicker() {
+    final theme = Theme.of(context);
+    
     return GestureDetector(
       onTap: _pickImage,
       child: Container(
         height: 200,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: theme.cardTheme.color?.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: _selectedImage != null 
-                ? const Color(0xFFD4AF37) 
-                : const Color(0xFFD4AF37).withValues(alpha: 0.3),
+                ? theme.primaryColor 
+                : theme.primaryColor.withValues(alpha: 0.3),
             width: _selectedImage != null ? 2 : 1,
           ),
         ),
@@ -549,7 +566,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                       child: Text(
                         'Нажмите, чтобы изменить фото',
                         style: GoogleFonts.montserrat(
-                          color: Colors.white,
+                          color: theme.textTheme.bodyLarge?.color,
                           fontSize: 12,
                         ),
                       ),
@@ -560,12 +577,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.add_a_photo, color: Color(0xFFD4AF37), size: 48),
+                  Icon(Icons.add_a_photo, color: theme.primaryColor, size: 48),
                   const SizedBox(height: 12),
                   Text(
                     'Нажмите, чтобы сделать селфи',
                     style: GoogleFonts.montserrat(
-                      color: Colors.white70,
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                       fontSize: 14,
                     ),
                   ),
@@ -576,27 +593,32 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   Widget _buildSubmitButton() {
+    final theme = Theme.of(context);
+    
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFD4AF37),
+          backgroundColor: theme.primaryColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 8,
-          shadowColor: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+          shadowColor: theme.primaryColor.withValues(alpha: 0.4),
         ),
         onPressed: _isSubmitting || _selectedImage == null ? null : _submitRequest,
         child: _isSubmitting
-            ? const SizedBox(
+            ? SizedBox(
                 width: 24,
                 height: 24,
-                child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2),
+                child: CircularProgressIndicator(
+                  color: theme.scaffoldBackgroundColor,
+                  strokeWidth: 2,
+                ),
               )
             : Text(
                 'ОТПРАВИТЬ НА ПРОВЕРКУ',
                 style: GoogleFonts.montserrat(
-                  color: Colors.black,
+                  color: theme.scaffoldBackgroundColor,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.5,

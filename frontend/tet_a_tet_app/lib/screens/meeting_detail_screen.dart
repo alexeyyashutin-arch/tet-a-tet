@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
-import '../widgets/background_pattern.dart';
+import '../widgets/app_background.dart';
 import 'chat_screen.dart';
 import 'user_profile_screen.dart';
 import 'my_meetings_screen.dart';
@@ -15,36 +15,36 @@ class MeetingDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final username = meeting['creator_username'] ?? 'Аноним';
     final age = meeting['creator_age'];
     final nameWithAge = age != null ? '$username, $age' : username;
     final formattedDate = _getFormattedDateTime(meeting['meeting_date'], meeting['meeting_time']);
     
-    // 🚺 Определяем пол и иконку
     final isFemale = meeting['creator_gender'] == 'female' || meeting['creator_gender'] == 'ж';
     final IconData genderIcon = isFemale ? Icons.female : Icons.male;
     final Color genderColor = isFemale ? const Color(0xFFEC407A) : const Color(0xFF4FC3F7);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withValues(alpha: 0.3),
+              backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
               elevation: 0,
               centerTitle: true,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: Icon(Icons.arrow_back, color: theme.textTheme.bodyLarge?.color),
                 onPressed: () => Navigator.pop(context),
               ),
               title: Text(
                 'ПОДРОБНОСТИ',
                 style: GoogleFonts.montserrat(
-                  color: Colors.white,
+                  color: theme.textTheme.bodyLarge?.color,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2.0,
                   fontSize: 16,
@@ -54,7 +54,7 @@ class MeetingDetailScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: BackgroundPattern(
+      body: AppBackground(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
             0,
@@ -69,39 +69,39 @@ class MeetingDetailScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: GestureDetector(
-                    onTap: () {
-                      if (meeting['creator_id'] != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => UserProfileScreen(userId: meeting['creator_id'].toString()),
-                          ),
-                        );
-                      }
-                    },                  
+                  onTap: () {
+                    if (meeting['creator_id'] != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserProfileScreen(userId: meeting['creator_id'].toString()),
+                        ),
+                      );
+                    }
+                  },
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(24),
                     child: Stack(
                       alignment: Alignment.bottomCenter,
                       children: [
                         AspectRatio(
-                          aspectRatio: 1.0, 
+                          aspectRatio: 1.0,
                           child: meeting['creator_avatar_url'] != null
                               ? CachedNetworkImage(
                                   imageUrl: '${ApiService.baseUrl}${meeting['creator_avatar_url']}',
                                   fit: BoxFit.cover,
                                   placeholder: (context, url) => Container(
-                                    color: const Color(0xFF1E1E1E),
-                                    child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
+                                    color: theme.cardTheme.color,
+                                    child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
                                   ),
                                   errorWidget: (context, url, error) => Container(
-                                    color: const Color(0xFF1E1E1E),
-                                    child: const Icon(Icons.person, size: 80, color: Colors.white54),
+                                    color: theme.cardTheme.color,
+                                    child: Icon(Icons.person, size: 80, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
                                   ),
                                 )
                               : Container(
-                                  color: const Color(0xFF1E1E1E),
-                                  child: const Icon(Icons.person, size: 80, color: Colors.white54),
+                                  color: theme.cardTheme.color,
+                                  child: Icon(Icons.person, size: 80, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
                                 ),
                         ),
                         Container(
@@ -111,8 +111,8 @@ class MeetingDetailScreen extends StatelessWidget {
                               begin: Alignment.bottomCenter,
                               end: Alignment.topCenter,
                               colors: [
-                                Colors.black.withValues(alpha: 0.95),
-                                Colors.black.withValues(alpha: 0.6),
+                                theme.scaffoldBackgroundColor.withValues(alpha: 0.95),
+                                theme.scaffoldBackgroundColor.withValues(alpha: 0.6),
                                 Colors.transparent,
                               ],
                             ),
@@ -125,7 +125,7 @@ class MeetingDetailScreen extends StatelessWidget {
                               Text(
                                 nameWithAge,
                                 style: GoogleFonts.montserrat(
-                                  color: Colors.white,
+                                  color: theme.textTheme.bodyLarge?.color,
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 0.5,
@@ -148,7 +148,7 @@ class MeetingDetailScreen extends StatelessWidget {
                 child: Text(
                   meeting['title'],
                   style: GoogleFonts.montserrat(
-                    color: Colors.white,
+                    color: theme.textTheme.bodyLarge?.color,
                     fontSize: 26,
                     fontWeight: FontWeight.w600,
                     height: 1.2,
@@ -163,9 +163,9 @@ class MeetingDetailScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
                   children: [
-                    _buildInfoRow(Icons.calendar_today, formattedDate),
+                    _buildInfoRow(context,Icons.calendar_today, formattedDate),
                     if (meeting['location'] != null && meeting['location'].toString().isNotEmpty)
-                      _buildInfoRow(Icons.location_on, meeting['location']),
+                      _buildInfoRow(context, Icons.location_on, meeting['location']),
                   ],
                 ),
               ),
@@ -181,7 +181,7 @@ class MeetingDetailScreen extends StatelessWidget {
                       Text(
                         'ОПИСАНИЕ',
                         style: GoogleFonts.montserrat(
-                          color: const Color(0xFFD4AF37),
+                          color: theme.primaryColor,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.0,
@@ -191,7 +191,7 @@ class MeetingDetailScreen extends StatelessWidget {
                       Text(
                         meeting['description'],
                         style: GoogleFonts.montserrat(
-                          color: Colors.white70,
+                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                           fontSize: 15,
                           height: 1.5,
                         ),
@@ -212,7 +212,7 @@ class MeetingDetailScreen extends StatelessWidget {
                       Text(
                         'ПОЖЕЛАНИЯ К СПУТНИЦЕ',
                         style: GoogleFonts.montserrat(
-                          color: const Color(0xFFD4AF37),
+                          color: theme.primaryColor,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.0,
@@ -223,14 +223,14 @@ class MeetingDetailScreen extends StatelessWidget {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: theme.cardTheme.color,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
                         ),
                         child: Text(
                           meeting['partner_wishes'],
                           style: GoogleFonts.montserrat(
-                            color: Colors.white,
+                            color: theme.textTheme.bodyLarge?.color,
                             fontSize: 15,
                             height: 1.4,
                           ),
@@ -243,9 +243,9 @@ class MeetingDetailScreen extends StatelessWidget {
 
               const SizedBox(height: 40),
 
-              _buildResponsesSection(meeting['id'].toString()),
+              _buildResponsesSection(context, meeting['id'].toString()),
 
-              // 💌 УМНАЯ КНОПКА ОТКЛИКА (скрывается для создателя и тех, кто уже откликнулся)
+              // 💌 УМНАЯ КНОПКА ОТКЛИКА
               FutureBuilder<Map<String, dynamic>?>(
                 future: ApiService().getProfile(),
                 builder: (context, snapshot) {
@@ -257,14 +257,10 @@ class MeetingDetailScreen extends StatelessWidget {
                   final isCreator = meeting['creator_id']?.toString() == currentUserId;
                   final hasResponded = meeting['has_responded'] == true;
 
-                  print('🔍 [ОТКЛИК] currentUserId: $currentUserId, creator_id: ${meeting['creator_id']}, has_responded: ${meeting['has_responded']}');
-
-                  // 🛡️ Если это создатель встречи ИЛИ он уже откликнулся — скрываем кнопку!
                   if (isCreator || hasResponded) {
                     return const SizedBox(height: 20);
                   }
 
-                  // Иначе показываем кнопку отклика
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: SizedBox(
@@ -272,10 +268,10 @@ class MeetingDetailScreen extends StatelessWidget {
                       height: 56,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD4AF37),
+                          backgroundColor: theme.primaryColor,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           elevation: 8,
-                          shadowColor: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+                          shadowColor: theme.primaryColor.withValues(alpha: 0.4),
                         ),
                         onPressed: () async {
                           final api = ApiService();
@@ -283,32 +279,56 @@ class MeetingDetailScreen extends StatelessWidget {
                           final result = await showDialog<bool>(
                             context: context,
                             builder: (context) => AlertDialog(
-                              backgroundColor: const Color(0xFF1E1E1E),
-                              title: Text('Откликнуться на встречу', style: GoogleFonts.montserrat(color: Colors.white)),
+                              backgroundColor: theme.scaffoldBackgroundColor,
+                              title: Text(
+                                'Откликнуться на встречу',
+                                style: GoogleFonts.montserrat(color: theme.textTheme.bodyLarge?.color),
+                              ),
                               content: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text('Хочешь оставить сообщение автору?', style: GoogleFonts.montserrat(color: Colors.grey)),
+                                  Text(
+                                    'Хочешь оставить сообщение автору?',
+                                    style: GoogleFonts.montserrat(
+                                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                                    ),
+                                  ),
                                   const SizedBox(height: 12),
                                   TextField(
                                     controller: msgController,
                                     maxLines: 3,
-                                    style: GoogleFonts.montserrat(color: Colors.white),
+                                    style: GoogleFonts.montserrat(color: theme.textTheme.bodyLarge?.color),
                                     decoration: InputDecoration(
                                       hintText: 'Например: Привет! С удовольствием составлю компанию 🍷',
-                                      hintStyle: GoogleFonts.montserrat(color: Colors.grey),
+                                      hintStyle: GoogleFonts.montserrat(
+                                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                                      ),
                                       filled: true,
-                                      fillColor: Colors.black.withValues(alpha: 0.3),
+                                      fillColor: theme.cardTheme.color,
                                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
                                   ),
                                 ],
                               ),
                               actions: [
-                                TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Отмена', style: GoogleFonts.montserrat(color: Colors.grey))),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: Text(
+                                    'Отмена',
+                                    style: GoogleFonts.montserrat(
+                                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                ),
                                 TextButton(
                                   onPressed: () => Navigator.pop(context, true),
-                                  child: Text('Отправить', style: GoogleFonts.montserrat(color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
+                                  child: Text(
+                                    'Отправить',
+                                    style: GoogleFonts.montserrat(
+                                      color: theme.primaryColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -325,7 +345,6 @@ class MeetingDetailScreen extends StatelessWidget {
                                 ),
                               );
                               
-                              // 🆕 Если отклик успешен, плавно переходим на экран "Мои встречи"
                               if (success) {
                                 Navigator.pushReplacement(
                                   context,
@@ -338,7 +357,7 @@ class MeetingDetailScreen extends StatelessWidget {
                         child: Text(
                           'ОТКЛИКНУТЬСЯ НА ВСТРЕЧУ',
                           style: GoogleFonts.montserrat(
-                            color: Colors.black,
+                            color: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.0,
@@ -357,19 +376,21 @@ class MeetingDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text) {
+  Widget _buildInfoRow(BuildContext context, IconData icon, String text) {
+    final theme = Theme.of(context);
+    
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: const Color(0xFFD4AF37), size: 20),
+          Icon(icon, color: theme.primaryColor, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
               style: GoogleFonts.montserrat(
-                color: Colors.white70,
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                 fontSize: 15,
                 fontWeight: FontWeight.w400,
                 height: 1.4,
@@ -381,8 +402,9 @@ class MeetingDetailScreen extends StatelessWidget {
     );
   }
 
-  // 📋 Секция с откликами (видна только автору)
-  Widget _buildResponsesSection(String meetingId) {
+  Widget _buildResponsesSection(BuildContext context, String meetingId) {
+    final theme = Theme.of(context);
+    
     return ValueListenableBuilder<int>(
       valueListenable: _refreshKey,
       builder: (context, value, child) {
@@ -394,12 +416,11 @@ class MeetingDetailScreen extends StatelessWidget {
             }
             
             if (snapshot.hasError || snapshot.data == null || snapshot.data!.isEmpty) {
-              return const SizedBox.shrink(); 
+              return const SizedBox.shrink();
             }
             
             final responses = snapshot.data!;
 
-            // 🆕 Помечаем отклики как прочитанные (только если они есть и мы автор)
             WidgetsBinding.instance.addPostFrameCallback((_) {
               ApiService().markResponsesAsRead(meetingId);
             });
@@ -413,7 +434,7 @@ class MeetingDetailScreen extends StatelessWidget {
                   child: Text(
                     'ОТКЛИКИ (${responses.length})',
                     style: GoogleFonts.montserrat(
-                      color: const Color(0xFFD4AF37),
+                      color: theme.primaryColor,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.0,
@@ -430,8 +451,8 @@ class MeetingDetailScreen extends StatelessWidget {
     );
   }
 
-  // 🃏 Карточка откликнувшегося
   Widget _buildResponseCard(BuildContext context, Map<String, dynamic> resp) {
+    final theme = Theme.of(context);
     final username = resp['responder_username'] ?? 'Аноним';
     final age = resp['responder_age'];
     final nameWithAge = age != null ? '$username, $age' : username;
@@ -442,9 +463,9 @@ class MeetingDetailScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.3),
+          color: theme.cardTheme.color,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -467,23 +488,22 @@ class MeetingDetailScreen extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundColor: const Color(0xFFD4AF37).withValues(alpha: 0.2),
-                      child: const Icon(Icons.person, color: Color(0xFFD4AF37)),
+                      backgroundColor: theme.primaryColor.withValues(alpha: 0.2),
+                      child: Icon(Icons.person, color: theme.primaryColor),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         nameWithAge,
                         style: GoogleFonts.montserrat(
-                          color: Colors.white,
+                          color: theme.textTheme.bodyLarge?.color,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           decoration: TextDecoration.underline,
-                          decorationColor: const Color(0xFFD4AF37).withValues(alpha: 0.5),
+                          decorationColor: theme.primaryColor.withValues(alpha: 0.5),
                         ),
                       ),
                     ),
-                    // 🆕 Умный статус отклика (учитываем все возможные статусы)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -510,13 +530,13 @@ class MeetingDetailScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.4),
+                  color: theme.scaffoldBackgroundColor.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   message,
                   style: GoogleFonts.montserrat(
-                    color: Colors.white70,
+                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                     fontSize: 14,
                     fontStyle: FontStyle.italic,
                   ),
@@ -526,12 +546,9 @@ class MeetingDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 16),
             
-            // 👇 НИЖНЯЯ ЧАСТЬ: Кнопки действий
-            // 👇 НИЖНЯЯ ЧАСТЬ: Кнопки действий
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // 🆕 Показываем кнопки "Отклонить" и "Принять" ТОЛЬКО если статус "pending"
                 if (resp['status'] == 'pending') ...[
                   TextButton.icon(
                     onPressed: () async {
@@ -544,7 +561,7 @@ class MeetingDetailScreen extends StatelessWidget {
                           ),
                         );
                         if (success) {
-                          _refreshKey.value++; // 🆕 Магическое обновление списка!
+                          _refreshKey.value++;
                         }
                       }
                     },
@@ -563,13 +580,13 @@ class MeetingDetailScreen extends StatelessWidget {
                           ),
                         );
                         if (success) {
-                          _refreshKey.value++; // 🆕 Магическое обновление списка!
+                          _refreshKey.value++;
                         }
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4AF37),
-                      foregroundColor: Colors.black,
+                      backgroundColor: theme.primaryColor,
+                      foregroundColor: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     icon: const Icon(Icons.check, size: 18),
@@ -578,7 +595,6 @@ class MeetingDetailScreen extends StatelessWidget {
                   const SizedBox(width: 8),
                 ],
                 
-                // 💬 Кнопка "Написать" (видна всегда, чтобы автор мог начать чат)
                 IconButton(
                   onPressed: () {
                     Navigator.push(
@@ -592,7 +608,7 @@ class MeetingDetailScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFFD4AF37), size: 22),
+                  icon: Icon(Icons.chat_bubble_outline, color: theme.primaryColor, size: 22),
                   tooltip: 'Написать',
                 ),
               ],
@@ -608,12 +624,12 @@ class MeetingDetailScreen extends StatelessWidget {
     final today = DateTime.now();
     final tomorrow = today.add(const Duration(days: 1));
 
-    final isToday = meetingDate.year == today.year && 
-                    meetingDate.month == today.month && 
+    final isToday = meetingDate.year == today.year &&
+                    meetingDate.month == today.month &&
                     meetingDate.day == today.day;
                     
-    final isTomorrow = meetingDate.year == tomorrow.year && 
-                       meetingDate.month == tomorrow.month && 
+    final isTomorrow = meetingDate.year == tomorrow.year &&
+                       meetingDate.month == tomorrow.month &&
                        meetingDate.day == tomorrow.day;
 
     if (timeStr == null || timeStr.isEmpty) {
@@ -633,7 +649,6 @@ class MeetingDetailScreen extends StatelessWidget {
     return '${date.day} ${months[date.month - 1]}, $timeStr';
   }
 
-  // 🎨 Цвета для статусов отклика
   Color _getResponseStatusColor(String status) {
     switch (status) {
       case 'pending': return Colors.orange;
@@ -645,7 +660,6 @@ class MeetingDetailScreen extends StatelessWidget {
     }
   }
 
-  // 📝 Текст для статусов отклика
   String _getResponseStatusText(String status) {
     switch (status) {
       case 'pending': return 'Ждёт';
@@ -656,5 +670,4 @@ class MeetingDetailScreen extends StatelessWidget {
       default: return 'Неизвестно';
     }
   }
-
 }

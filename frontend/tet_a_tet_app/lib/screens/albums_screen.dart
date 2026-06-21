@@ -5,9 +5,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
-import '../widgets/background_pattern.dart';
 import 'package:reorderable_grid_view/reorderable_grid_view.dart';
 import 'dart:async';
+import '../widgets/app_background.dart';
 
 class AlbumsScreen extends StatefulWidget {
   final String? userId;
@@ -128,55 +128,57 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
     }
   }
 
-  Future<void> _deletePhoto(String photoId, int index, String albumType) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text('Удалить фото?', style: TextStyle(color: Colors.white)),
-        content: const Text('Это действие нельзя отменить.', style: TextStyle(color: Colors.grey)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Удалить', style: TextStyle(color: Colors.redAccent))),
-        ],
-      ),
-    );
+  // Future<void> _deletePhoto(String photoId, int index, String albumType) async {
+  //   final confirm = await showDialog<bool>(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       backgroundColor: const Color(0xFF1E1E1E),
+  //       title: const Text('Удалить фото?', style: TextStyle(color: Colors.white)),
+  //       content: const Text('Это действие нельзя отменить.', style: TextStyle(color: Colors.grey)),
+  //       actions: [
+  //         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена')),
+  //         TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Удалить', style: TextStyle(color: Colors.redAccent))),
+  //       ],
+  //     ),
+  //   );
 
-    if (confirm == true) {
-      final success = await _api.deletePhoto(photoId);
-      if (success && mounted) {
-        setState(() {
-          if (albumType == 'public') {
-            _publicPhotos.removeAt(index);
-          } else {
-            _privatePhotos.removeAt(index);
-          }
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Фото удалено'), backgroundColor: Colors.green),
-        );
-      }
-    }
-  }
+  //   if (confirm == true) {
+  //     final success = await _api.deletePhoto(photoId);
+  //     if (success && mounted) {
+  //       setState(() {
+  //         if (albumType == 'public') {
+  //           _publicPhotos.removeAt(index);
+  //         } else {
+  //           _privatePhotos.removeAt(index);
+  //         }
+  //       });
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(content: Text('Фото удалено'), backgroundColor: Colors.green),
+  //       );
+  //     }
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight + 48.0),
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withValues(alpha: 0.3),
+              backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
               elevation: 0,
               centerTitle: true,
               title: Text(
                 'ФОТОАЛЬБОМЫ',
                 style: GoogleFonts.montserrat(
-                  color: Colors.white,
+                  color: theme.primaryColor,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2.0,
                   fontSize: 16,
@@ -184,9 +186,9 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
               ),
               bottom: TabBar(
                 controller: _tabController,
-                indicatorColor: const Color(0xFFD4AF37),
-                labelColor: const Color(0xFFD4AF37),
-                unselectedLabelColor: Colors.grey,
+                indicatorColor: theme.primaryColor,
+                labelColor: theme.primaryColor,
+                unselectedLabelColor: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5) ?? Colors.grey,
                 labelStyle: GoogleFonts.montserrat(fontWeight: FontWeight.bold, letterSpacing: 1.0, fontSize: 13),
                 tabs: const [
                   Tab(text: 'ПУБЛИЧНЫЙ'),
@@ -197,7 +199,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
           ),
         ),
       ),
-      body: BackgroundPattern(
+      body: AppBackground(
         child: TabBarView(
           controller: _tabController,
           children: [
@@ -210,7 +212,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
           ? Padding(
               padding: const EdgeInsets.only(bottom: 80.0, right: 16.0),
               child: FloatingActionButton(
-                backgroundColor: const Color(0xFFD4AF37),
+                backgroundColor: theme.primaryColor,
                 elevation: 8,
                 onPressed: () {
                   setState(() {
@@ -224,7 +226,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
                 },
                 child: Icon(
                   _isEditMode ? Icons.check : Icons.edit_outlined,
-                  color: Colors.black,
+                  color: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
                   size: 28,
                 ),
               ),
@@ -245,9 +247,11 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
   }
 
   Widget _buildInnerContent(String albumType, List<dynamic> photos, bool isLoading) {
+    final theme = Theme.of(context);
+    
     if (isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+      return Center(
+        child: CircularProgressIndicator(color: theme.primaryColor),
       );
     }
 
@@ -256,16 +260,26 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(albumType == 'public' ? Icons.photo_library : Icons.lock, size: 64, color: Colors.grey),
+            Icon(
+              albumType == 'public' ? Icons.photo_library : Icons.lock,
+              size: 64,
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+            ),
             const SizedBox(height: 16),
             Text(
               albumType == 'public' ? 'Пока нет публичных фото' : 'Приватный альбом пуст',
-              style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 16),
+              style: GoogleFonts.montserrat(
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                fontSize: 16,
+              ),
             ),
             if (!widget.isMyProfile && albumType == 'private')
-              const Padding(
-                padding: EdgeInsets.only(top: 8.0),
-                child: Text('Нет доступа', style: TextStyle(color: Colors.redAccent, fontSize: 14)),
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  'Нет доступа',
+                  style: GoogleFonts.montserrat(color: Colors.redAccent, fontSize: 14),
+                ),
               ),
           ],
         ),
@@ -280,12 +294,13 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
   }
 
   Widget _buildNormalGrid(String albumType, List<dynamic> photos) {
+    final theme = Theme.of(context);
     List<Widget> gridChildren = [];
 
     for (int i = 0; i < photos.length; i++) {
       final photo = photos[i];
       gridChildren.add(
-        AnimatedGridItem( // 🆕 Магия каскадной анимации здесь!
+        AnimatedGridItem(
           index: i,
           child: GestureDetector(
             key: ValueKey(photo['id']),
@@ -305,10 +320,10 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
                       fit: BoxFit.cover,
                       memCacheWidth: 300,
                       placeholder: (context, url) => Container(
-                        color: const Color(0xFF1E1E1E),
-                        child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37), strokeWidth: 2)),
+                        color: theme.cardTheme.color,
+                        child: Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 2)),
                       ),
-                      errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.red),
+                      errorWidget: (context, url, error) => Icon(Icons.error, color: Colors.red),
                     ),
                     if (i == 0 && albumType == 'public')
                       Positioned(
@@ -316,11 +331,15 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
                         left: 6,
                         child: Container(
                           padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFD4AF37),
+                          decoration: BoxDecoration(
+                            color: theme.primaryColor,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.star, color: Colors.black, size: 14),
+                          child: Icon(
+                            Icons.star,
+                            color: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
+                            size: 14,
+                          ),
                         ),
                       ),
                   ],
@@ -341,20 +360,20 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
             onTap: _showAlbumTypeDialog,
             child: Container(
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.6), width: 2),
+                border: Border.all(color: theme.primaryColor.withValues(alpha: 0.6), width: 2),
                 borderRadius: BorderRadius.circular(12),
-                color: Colors.black.withValues(alpha: 0.2),
+                color: theme.cardTheme.color,
               ),
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.add_a_photo, color: Color(0xFFD4AF37), size: 36),
-                    SizedBox(height: 4),
+                    Icon(Icons.add_a_photo, color: theme.primaryColor, size: 36),
+                    const SizedBox(height: 4),
                     Text(
                       'Добавить',
-                      style: TextStyle(
-                        color: Color(0xFFD4AF37),
+                      style: GoogleFonts.montserrat(
+                        color: theme.primaryColor,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -378,6 +397,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
   }
 
   Widget _buildReorderableGrid(String albumType, List<dynamic> photos) {
+    final theme = Theme.of(context);
     List<Widget> gridChildren = [];
 
     for (int i = 0; i < photos.length; i++) {
@@ -396,18 +416,18 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
                   fit: BoxFit.cover,
                   memCacheWidth: 300,
                   placeholder: (context, url) => Container(
-                    color: const Color(0xFF1E1E1E),
-                    child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37), strokeWidth: 2)),
+                    color: theme.cardTheme.color,
+                    child: Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 2)),
                   ),
                   errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.red),
                 ),
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
+                    color: theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Center(
-                    child: Icon(Icons.drag_indicator, color: Color(0xFFD4AF37), size: 40),
+                  child: Center(
+                    child: Icon(Icons.drag_indicator, color: theme.primaryColor, size: 40),
                   ),
                 ),
                 if (widget.isMyProfile)
@@ -462,33 +482,112 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
   }
 
   void _showAlbumTypeDialog() {
+    final theme = Theme.of(context);
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: Text('Загрузить фото', style: GoogleFonts.montserrat(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: Text('В какой альбом загрузить фото?', style: GoogleFonts.montserrat(color: Colors.grey)),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        title: Text(
+          'Загрузить фото',
+          style: GoogleFonts.montserrat(
+            color: theme.textTheme.bodyLarge?.color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'В какой альбом загрузить фото?',
+          style: GoogleFonts.montserrat(
+            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _uploadPhoto('public');
             },
-            child: Text('ПУБЛИЧНЫЙ', style: GoogleFonts.montserrat(color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
+            child: Text(
+              'ПУБЛИЧНЫЙ',
+              style: GoogleFonts.montserrat(
+                color: theme.primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _uploadPhoto('private');
             },
-            child: Text('ПРИВАТНЫЙ 🔒', style: GoogleFonts.montserrat(color: const Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
+            child: Text(
+              'ПРИВАТНЫЙ 🔒',
+              style: GoogleFonts.montserrat(
+                color: theme.primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
+  Future<void> _deletePhoto(String photoId, int index, String albumType) async {
+    final theme = Theme.of(context);
+    
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        title: Text(
+          'Удалить фото?',
+          style: GoogleFonts.montserrat(color: theme.textTheme.bodyLarge?.color),
+        ),
+        content: Text(
+          'Это действие нельзя отменить.',
+          style: GoogleFonts.montserrat(
+            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Отмена',
+              style: GoogleFonts.montserrat(
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Удалить', style: GoogleFonts.montserrat(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final success = await _api.deletePhoto(photoId);
+      if (success && mounted) {
+        setState(() {
+          if (albumType == 'public') {
+            _publicPhotos.removeAt(index);
+          } else {
+            _privatePhotos.removeAt(index);
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Фото удалено'), backgroundColor: Colors.green),
+        );
+      }
+    }
+  }
+
   void _showPhotoDialog(String photoUrl, int index, String albumType) {
+    final theme = Theme.of(context);
+    
     Navigator.push(
       context,
       PageRouteBuilder(
@@ -507,7 +606,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
                         imageUrl: '${ApiService.baseUrl}$photoUrl',
                         fit: BoxFit.contain,
                         memCacheWidth: 1200,
-                        placeholder: (context, url) => const CircularProgressIndicator(color: Color(0xFFD4AF37)),
+                        placeholder: (context, url) => CircularProgressIndicator(color: theme.primaryColor),
                         errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.red),
                       ),
                     ),
@@ -542,8 +641,8 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD4AF37),
-                        foregroundColor: Colors.black,
+                        backgroundColor: theme.primaryColor,
+                        foregroundColor: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
-import '../widgets/background_pattern.dart';
+import '../widgets/app_background.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
@@ -47,10 +47,12 @@ class ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
       );
     }
 
@@ -64,29 +66,28 @@ class ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withValues(alpha: 0.3),
+              backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
               elevation: 0,
               centerTitle: true,
               title: Text(
                 'ПРОФИЛЬ',
                 style: GoogleFonts.montserrat(
-                  color: Colors.white,
+                  color: theme.primaryColor,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2.0,
                   fontSize: 16,
                 ),
               ),
               actions: [
-                // 🆕 Кнопка настроек (шестерёнка)
                 IconButton(
-                  icon: const Icon(Icons.settings, color: Color(0xFFD4AF37)),
+                  icon: Icon(Icons.settings, color: theme.primaryColor),
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -96,9 +97,8 @@ class ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                 ),
-                // Карандаш (редактирование)
                 IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.white),
+                  icon: Icon(Icons.edit, color: theme.textTheme.bodyLarge?.color),
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -108,9 +108,8 @@ class ProfileScreenState extends State<ProfileScreen> {
                     ).then((_) => loadProfile());
                   },
                 ),
-                // Выход
                 IconButton(
-                  icon: const Icon(Icons.logout, color: Colors.white),
+                  icon: Icon(Icons.logout, color: theme.textTheme.bodyLarge?.color),
                   onPressed: () async {
                     await _api.logout();
                     if (mounted) {
@@ -126,7 +125,7 @@ class ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-      body: BackgroundPattern(
+      body: AppBackground(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
             0, 
@@ -152,17 +151,17 @@ class ProfileScreenState extends State<ProfileScreen> {
                                 imageUrl: '${ApiService.baseUrl}${_profile!['avatar_url']}',
                                 fit: BoxFit.cover,
                                 placeholder: (context, url) => Container(
-                                  color: const Color(0xFF1E1E1E),
-                                  child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
+                                  color: theme.cardTheme.color,
+                                  child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
                                 ),
                                 errorWidget: (context, url, error) => Container(
-                                  color: const Color(0xFF1E1E1E),
-                                  child: const Icon(Icons.person, size: 80, color: Colors.white54),
+                                  color: theme.cardTheme.color,
+                                  child: Icon(Icons.person, size: 80, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
                                 ),
                               )
                             : Container(
-                                color: const Color(0xFF1E1E1E),
-                                child: const Icon(Icons.person, size: 80, color: Colors.white54),
+                                color: theme.cardTheme.color,
+                                child: Icon(Icons.person, size: 80, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
                               ),
                       ),
                       Container(
@@ -172,8 +171,8 @@ class ProfileScreenState extends State<ProfileScreen> {
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
                             colors: [
-                              Colors.black.withValues(alpha: 0.95),
-                              Colors.black.withValues(alpha: 0.6),
+                              theme.scaffoldBackgroundColor.withValues(alpha: 0.95),
+                              theme.scaffoldBackgroundColor.withValues(alpha: 0.6),
                               Colors.transparent,
                             ],
                           ),
@@ -188,7 +187,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                                 Text(
                                   nameWithAge,
                                   style: GoogleFonts.montserrat(
-                                    color: Colors.white,
+                                    color: theme.textTheme.bodyLarge?.color,
                                     fontSize: 22,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 0.5,
@@ -220,9 +219,9 @@ class ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
-
+        
               const SizedBox(height: 24),
-
+        
               // 📞 Контактная информация
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -230,9 +229,9 @@ class ProfileScreenState extends State<ProfileScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.3),
+                    color: theme.cardTheme.color,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                    border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,7 +239,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                       Text(
                         'КОНТАКТЫ',
                         style: GoogleFonts.montserrat(
-                          color: const Color(0xFFD4AF37),
+                          color: theme.primaryColor,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.5,
@@ -249,12 +248,12 @@ class ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          const Icon(Icons.phone, color: Color(0xFFD4AF37), size: 20),
+                          Icon(Icons.phone, color: theme.primaryColor, size: 20),
                           const SizedBox(width: 12),
                           Text(
                             phone,
                             style: GoogleFonts.montserrat(
-                              color: Colors.white,
+                              color: theme.textTheme.bodyLarge?.color,
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
@@ -265,18 +264,18 @@ class ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
-
+        
               const SizedBox(height: 24),
-
-                            // 🆕 🛡️ Блок верификации
+        
+              // 🆕 🛡️ Блок верификации
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: _buildVerificationCard(),
               ),
-
+        
               const SizedBox(height: 24),
-
-              // 🌟 НОВАЯ СЕКЦИЯ: ОБО МНЕ (Параметры и образ жизни)
+        
+              // 🌟 НОВАЯ СЕКЦИЯ: ОБО МНЕ
               if (_profile?['bio'] != null || _hasAnyNewProfileFields()) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -284,9 +283,9 @@ class ProfileScreenState extends State<ProfileScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.3),
+                      color: theme.cardTheme.color,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                      border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,7 +293,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                         Text(
                           'ОБО МНЕ',
                           style: GoogleFonts.montserrat(
-                            color: const Color(0xFFD4AF37),
+                            color: theme.primaryColor,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.5,
@@ -302,22 +301,20 @@ class ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 12),
                         
-                        // Текст "О себе" (если есть)
                         if (_profile?['bio'] != null && _profile!['bio'].toString().isNotEmpty) ...[
                           Text(
                             _profile!['bio'],
                             style: GoogleFonts.montserrat(
-                              color: Colors.white,
+                              color: theme.textTheme.bodyLarge?.color,
                               fontSize: 15,
                               height: 1.5,
                             ),
                           ),
                           const SizedBox(height: 16),
-                          const Divider(color: Color(0xFFD4AF37), height: 1, thickness: 0.5),
+                          Divider(color: theme.primaryColor, height: 1, thickness: 0.5),
                           const SizedBox(height: 16),
                         ],
-
-                        // 🆕 Сетка с параметрами и образом жизни
+        
                         Wrap(
                           spacing: 12,
                           runSpacing: 12,
@@ -336,10 +333,10 @@ class ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ],
-
+        
               const SizedBox(height: 32),
-
-              // 📦 Архив встреч (разворачивающийся)
+        
+              // 📦 Архив встреч
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
@@ -348,9 +345,9 @@ class ProfileScreenState extends State<ProfileScreen> {
                     if (_myMeetings.where((m) => _isArchivedMeeting(m)).isNotEmpty) ...[
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: theme.cardTheme.color,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
                         ),
                         child: Theme(
                           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -358,14 +355,14 @@ class ProfileScreenState extends State<ProfileScreen> {
                             title: Text(
                               'АРХИВ ВСТРЕЧ', 
                               style: GoogleFonts.montserrat(
-                                color: Colors.white, 
+                                color: theme.textTheme.bodyLarge?.color, 
                                 fontSize: 14, 
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 1.0,
                               )
                             ),
-                            iconColor: const Color(0xFFD4AF37),
-                            collapsedIconColor: const Color(0xFFD4AF37),
+                            iconColor: theme.primaryColor,
+                            collapsedIconColor: theme.primaryColor,
                             children: [
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
@@ -385,15 +382,15 @@ class ProfileScreenState extends State<ProfileScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: theme.cardTheme.color,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
                         ),
                         child: Center(
                           child: Text(
                             'Архив встреч пуст',
                             style: GoogleFonts.montserrat(
-                              color: Colors.white70,
+                              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                               fontSize: 14,
                             ),
                           ),
@@ -403,10 +400,10 @@ class ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
-
+        
               const SizedBox(height: 16),
-
-              // 🆕 📂 Архив заявок (отклонённые и отменённые)
+        
+              // 🆕 📂 Архив заявок
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
@@ -415,9 +412,9 @@ class ProfileScreenState extends State<ProfileScreen> {
                     if (_archivedResponses.isNotEmpty) ...[
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: theme.cardTheme.color,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
                         ),
                         child: Theme(
                           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -425,14 +422,14 @@ class ProfileScreenState extends State<ProfileScreen> {
                             title: Text(
                               'АРХИВ ЗАЯВОК', 
                               style: GoogleFonts.montserrat(
-                                color: Colors.white, 
+                                color: theme.textTheme.bodyLarge?.color, 
                                 fontSize: 14, 
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 1.0,
                               )
                             ),
-                            iconColor: const Color(0xFFD4AF37),
-                            collapsedIconColor: const Color(0xFFD4AF37),
+                            iconColor: theme.primaryColor,
+                            collapsedIconColor: theme.primaryColor,
                             children: [
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
@@ -450,7 +447,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
-
+        
               const SizedBox(height: 20),
             ],
           ),
@@ -541,12 +538,14 @@ class ProfileScreenState extends State<ProfileScreen> {
 
   // 📦 Карточка архивной встречи
   Widget _buildArchiveMeetingCard(Map<String, dynamic> meeting) {
+    final theme = Theme.of(context);
     final isCancelled = meeting['status'] == 'cancelled';
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.2),
+        color: theme.cardTheme.color?.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -558,7 +557,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   meeting['title'],
                   style: GoogleFonts.montserrat(
-                    color: Colors.grey, 
+                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), 
                     fontSize: 14, 
                     fontWeight: FontWeight.w500,
                     decoration: isCancelled ? TextDecoration.lineThrough : null,
@@ -567,7 +566,10 @@ class ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 4),
                 Text(
                   _getFormattedDateTime(meeting['meeting_date'], meeting['meeting_time']),
-                  style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12),
+                  style: GoogleFonts.montserrat(
+                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -595,8 +597,8 @@ class ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 🆕 📂 Карточка архивной заявки
   Widget _buildArchivedResponseCard(Map<String, dynamic> response) {
+    final theme = Theme.of(context);
     final meeting = response['meeting'];
     final meetingTitle = meeting?['title'] ?? 'Встреча';
     final meetingDate = meeting?['meeting_date'];
@@ -608,7 +610,7 @@ class ProfileScreenState extends State<ProfileScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.2),
+        color: theme.cardTheme.color?.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -620,7 +622,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   meetingTitle,
                   style: GoogleFonts.montserrat(
-                    color: Colors.grey, 
+                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), 
                     fontSize: 14, 
                     fontWeight: FontWeight.w500,
                   ),
@@ -629,7 +631,10 @@ class ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 4),
                   Text(
                     _getFormattedDateTime(meetingDate, meetingTime),
-                    style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12),
+                    style: GoogleFonts.montserrat(
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ],
@@ -724,22 +729,24 @@ class ProfileScreenState extends State<ProfileScreen> {
 
   // 🆕 Строим красивый бейджик с иконкой
   Widget _buildInfoBadge(IconData icon, String text) {
+    final theme = Theme.of(context);
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
+        color: theme.primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+        border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: const Color(0xFFD4AF37), size: 16),
+          Icon(icon, color: theme.primaryColor, size: 16),
           const SizedBox(width: 6),
           Text(
             text,
             style: GoogleFonts.montserrat(
-              color: Colors.white,
+              color: theme.textTheme.bodyLarge?.color,
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
@@ -749,10 +756,33 @@ class ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 🆕 Карточка верификации
+   // 🆕 Карточка верификации
   Widget _buildVerificationCard() {
+    final theme = Theme.of(context);
+    // Проверяем, активна ли премиум (золотая) тема
+    final isPremium = theme.primaryColor == const Color(0xFFD4AF37);
     final isVerified = _profile?['is_verified'] ?? false;
     
+    // Определяем цвета в зависимости от темы
+    Color gradientStart;
+    Color gradientEnd;
+    Color borderColor;
+    Color iconContainerColor;
+
+    if (isPremium) {
+      // 👑 Золотая тема: настоящий стеклянный эффект
+      gradientStart = Colors.white.withValues(alpha: 0.05);
+      gradientEnd = Colors.white.withValues(alpha: 0.02);
+      borderColor = isVerified ? theme.primaryColor : theme.primaryColor.withValues(alpha: 0.3);
+      iconContainerColor = theme.primaryColor.withValues(alpha: 0.15);
+    } else {
+      //  Базовая тема: темный бургунди
+      gradientStart = theme.cardTheme.color ?? Colors.transparent;
+      gradientEnd = theme.cardTheme.color?.withValues(alpha: 0.5) ?? Colors.transparent;
+      borderColor = isVerified ? theme.primaryColor : theme.primaryColor.withValues(alpha: 0.3);
+      iconContainerColor = theme.primaryColor.withValues(alpha: 0.15);
+    }
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -768,14 +798,12 @@ class ProfileScreenState extends State<ProfileScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isVerified
-                ? [const Color(0xFFD4AF37).withValues(alpha: 0.15), const Color(0xFFFFD700).withValues(alpha: 0.05)]
-                : [Colors.white.withValues(alpha: 0.05), Colors.white.withValues(alpha: 0.02)],
+                ? [theme.primaryColor.withValues(alpha: 0.15), theme.primaryColor.withValues(alpha: 0.05)]
+                : [gradientStart, gradientEnd],
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isVerified 
-                ? const Color(0xFFD4AF37) 
-                : const Color(0xFFD4AF37).withValues(alpha: 0.3),
+            color: borderColor,
             width: isVerified ? 1.5 : 1,
           ),
         ),
@@ -784,12 +812,12 @@ class ProfileScreenState extends State<ProfileScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                color: iconContainerColor,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 isVerified ? Icons.verified : Icons.verified_outlined,
-                color: const Color(0xFFD4AF37),
+                color: theme.primaryColor,
                 size: 28,
               ),
             ),
@@ -801,7 +829,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                   Text(
                     isVerified ? 'ВЕРИФИЦИРОВАНЫ' : 'ПОЛУЧИТЬ ВЕРИФИКАЦИЮ',
                     style: GoogleFonts.montserrat(
-                      color: const Color(0xFFD4AF37),
+                      color: theme.primaryColor,
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.5,
@@ -813,14 +841,14 @@ class ProfileScreenState extends State<ProfileScreen> {
                         ? 'Золотая галочка доверия активна' 
                         : 'Повысьте доверие к своему профилю',
                     style: GoogleFonts.montserrat(
-                      color: Colors.white70,
+                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                       fontSize: 12,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Color(0xFFD4AF37), size: 24),
+            Icon(Icons.chevron_right, color: theme.primaryColor, size: 24),
           ],
         ),
       ),

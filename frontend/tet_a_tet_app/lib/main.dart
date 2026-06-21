@@ -6,6 +6,8 @@ import 'services/api_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
+import 'theme/app_theme.dart';
+import 'services/settings_service.dart';
 
 
 // 🆕 ВОТ ЭТО НАДО ДОБАВИТЬ В САМЫЙ ВЕРХ (строго до main и до любых классов!)
@@ -31,18 +33,28 @@ class TetATetApp extends StatefulWidget {
   const TetATetApp({super.key});
 
   @override
-  State<TetATetApp> createState() => _TetATetAppState();
+  State<TetATetApp> createState() => TetATetAppState();
 }
 
-class _TetATetAppState extends State<TetATetApp> {
+class TetATetAppState extends State<TetATetApp> {
   final _api = ApiService();
   bool _isLoading = true;
   bool _isLoggedIn = false;
+  String _theme = 'basic';  // 🆕 Тема по умолчанию
 
   @override
   void initState() {
     super.initState();
     _checkAuth();
+    loadTheme();  // 🆕 Загружаем тему
+  }
+
+  // 🆕 Загружаем тему из настроек
+  Future<void> loadTheme() async {
+    final theme = await SettingsService.getTheme();
+    if (mounted) {
+      setState(() => _theme = theme);
+    }
   }
 
   Future<void> _checkAuth() async {
@@ -88,9 +100,7 @@ class _TetATetAppState extends State<TetATetApp> {
     return MaterialApp(
       title: 'TET-A-TET',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Colors.black,
-      ),
+      theme: _theme == 'premium' ? AppTheme.premiumTheme : AppTheme.basicTheme,  // 🆕 Применяем тему
       localizationsDelegates: const[
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -108,7 +118,7 @@ class _TetATetAppState extends State<TetATetApp> {
               ),
             )
           : _isLoggedIn
-              ? const MainScreen() // <-- Заменили ProfileScreen на MainScreen!
+              ? const MainScreen()
               : const LoginScreen(),
     );
   }

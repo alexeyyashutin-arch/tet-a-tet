@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
-import '../widgets/background_pattern.dart';
+import '../widgets/app_background.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -38,7 +38,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  // 🆕 Проверяем, есть ли хоть одно новое заполненное поле
   bool _hasAnyNewProfileFields() {
     return _user?['height'] != null ||
            _user?['weight'] != null ||
@@ -49,24 +48,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
            _user?['has_children'] != null;
   }
 
-  // 🆕 Строим красивый бейджик с иконкой
   Widget _buildInfoBadge(IconData icon, String text) {
+    final theme = Theme.of(context);
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
+        color: theme.primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+        border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: const Color(0xFFD4AF37), size: 16),
+          Icon(icon, color: theme.primaryColor, size: 16),
           const SizedBox(width: 6),
           Text(
             text,
             style: GoogleFonts.montserrat(
-              color: Colors.white,
+              color: theme.textTheme.bodyLarge?.color,
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
@@ -78,18 +78,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
       );
     }
 
     if (_user == null) {
       return Scaffold(
-        backgroundColor: Colors.black,
-        appBar: AppBar(backgroundColor: Colors.black, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context))),
-        body: const Center(child: Text('Пользователь не найден', style: TextStyle(color: Colors.grey))),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: theme.textTheme.bodyLarge?.color),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: Center(
+          child: Text(
+            'Пользователь не найден',
+            style: GoogleFonts.montserrat(
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+            ),
+          ),
+        ),
       );
     }
 
@@ -104,29 +119,34 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withValues(alpha: 0.3),
+              backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
               elevation: 0,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: Icon(Icons.arrow_back, color: theme.textTheme.bodyLarge?.color),
                 onPressed: () => Navigator.pop(context),
               ),
               title: Text(
                 'ПРОФИЛЬ',
-                style: GoogleFonts.montserrat(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 2.0, fontSize: 16),
+                style: GoogleFonts.montserrat(
+                  color: theme.textTheme.bodyLarge?.color,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2.0,
+                  fontSize: 16,
+                ),
               ),
               centerTitle: true,
             ),
           ),
         ),
       ),
-      body: BackgroundPattern(
+      body: AppBackground(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(0, MediaQuery.of(context).padding.top + kToolbarHeight, 0, MediaQuery.of(context).padding.bottom + 16),
           child: Column(
@@ -146,10 +166,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             ? CachedNetworkImage(
                                 imageUrl: '${ApiService.baseUrl}${_user!['avatar_url']}',
                                 fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(color: const Color(0xFF1E1E1E), child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))),
-                                errorWidget: (context, url, error) => Container(color: const Color(0xFF1E1E1E), child: const Icon(Icons.person, size: 80, color: Colors.white54)),
+                                placeholder: (context, url) => Container(
+                                  color: theme.cardTheme.color,
+                                  child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  color: theme.cardTheme.color,
+                                  child: Icon(Icons.person, size: 80, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
+                                ),
                               )
-                            : Container(color: const Color(0xFF1E1E1E), child: const Icon(Icons.person, size: 80, color: Colors.white54)),
+                            : Container(
+                                color: theme.cardTheme.color,
+                                child: Icon(Icons.person, size: 80, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
+                              ),
                       ),
                       Container(
                         height: 90,
@@ -157,7 +186,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           gradient: LinearGradient(
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
-                            colors: [Colors.black.withValues(alpha: 0.95), Colors.black.withValues(alpha: 0.6), Colors.transparent],
+                            colors: [
+                              theme.scaffoldBackgroundColor.withValues(alpha: 0.95),
+                              theme.scaffoldBackgroundColor.withValues(alpha: 0.6),
+                              Colors.transparent,
+                            ],
                           ),
                         ),
                         padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
@@ -165,7 +198,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           children: [
                             Icon(genderIcon, color: genderColor, size: 24),
                             const SizedBox(width: 10),
-                            Text(nameWithAge, style: GoogleFonts.montserrat(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                            Text(
+                              nameWithAge,
+                              style: GoogleFonts.montserrat(
+                                color: theme.textTheme.bodyLarge?.color,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -181,16 +222,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Row(
                     children: [
-                      const Icon(Icons.location_on, color: Color(0xFFD4AF37), size: 20),
+                      Icon(Icons.location_on, color: theme.primaryColor, size: 20),
                       const SizedBox(width: 8),
-                      Text(city, style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 15)),
+                      Text(
+                        city,
+                        style: GoogleFonts.montserrat(
+                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                          fontSize: 15,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
               ],
 
-              // 🌟 НОВАЯ СЕКЦИЯ: ОБО МНЕ (объединяем "О себе" и новые параметры)
+              // 🌟 СЕКЦИЯ: ОБО МНЕ
               if ((bio != null && bio.isNotEmpty) || _hasAnyNewProfileFields()) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -198,9 +245,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.3),
+                      color: theme.cardTheme.color,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                      border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,7 +255,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         Text(
                           'ОБО МНЕ',
                           style: GoogleFonts.montserrat(
-                            color: const Color(0xFFD4AF37),
+                            color: theme.primaryColor,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.5,
@@ -216,24 +263,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         ),
                         const SizedBox(height: 12),
                         
-                        // Текст "О себе" (если есть)
                         if (bio != null && bio.isNotEmpty) ...[
                           Text(
                             bio,
                             style: GoogleFonts.montserrat(
-                              color: Colors.white,
+                              color: theme.textTheme.bodyLarge?.color,
                               fontSize: 15,
                               height: 1.5,
                             ),
                           ),
                           if (_hasAnyNewProfileFields()) ...[
                             const SizedBox(height: 16),
-                            const Divider(color: Color(0xFFD4AF37), height: 1, thickness: 0.5),
+                            Divider(color: theme.primaryColor, height: 1, thickness: 0.5),
                             const SizedBox(height: 16),
                           ],
                         ],
 
-                        // 🆕 Сетка с параметрами и образом жизни
                         if (_hasAnyNewProfileFields()) ...[
                           Wrap(
                             spacing: 12,
@@ -262,20 +307,44 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('АЛЬБОМ', style: GoogleFonts.montserrat(color: const Color(0xFFD4AF37), fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+                    Text(
+                      'АЛЬБОМ',
+                      style: GoogleFonts.montserrat(
+                        color: theme.primaryColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     if (_photos.isEmpty)
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3))),
-                        child: Center(child: Text('Альбом пуст', style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 14))),
+                        decoration: BoxDecoration(
+                          color: theme.cardTheme.color,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Альбом пуст',
+                            style: GoogleFonts.montserrat(
+                              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
                       )
                     else
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 8, mainAxisSpacing: 8),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
                         itemCount: _photos.length,
                         itemBuilder: (context, index) {
                           final photoUrl = _photos[index]['photo_url'];
@@ -284,8 +353,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             child: CachedNetworkImage(
                               imageUrl: '${ApiService.baseUrl}$photoUrl',
                               fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(color: const Color(0xFF1E1E1E), child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37), strokeWidth: 2))),
-                              errorWidget: (context, url, error) => Container(color: const Color(0xFF1E1E1E), child: const Icon(Icons.broken_image, color: Colors.white54)),
+                              placeholder: (context, url) => Container(
+                                color: theme.cardTheme.color,
+                                child: Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 2)),
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                color: theme.cardTheme.color,
+                                child: Icon(Icons.broken_image, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
+                              ),
                             ),
                           );
                         },

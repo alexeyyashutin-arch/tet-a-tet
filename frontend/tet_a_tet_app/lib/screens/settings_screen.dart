@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/settings_service.dart';
 import '../services/api_service.dart';
-import '../widgets/background_pattern.dart';
+import '../widgets/app_background.dart';
 import 'login_screen.dart';
+import '../main.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -24,6 +25,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // 🎨 Внешний вид
   String _language = 'ru';
+  String _theme = 'basic';
+  bool _isPremium = false; 
 
   @override
   void initState() {
@@ -32,17 +35,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
-    // Загружаем локальные настройки
     final push = await SettingsService.isPushEnabled();
     final sound = await SettingsService.isSoundEnabled();
     final lang = await SettingsService.getLanguage();
+    final theme = await SettingsService.getTheme(); 
+    final isPremium = await _api.isPremium(); 
 
-    // 🆕 Загружаем настройки с сервера
     final serverSettings = await _api.getNotificationSettings();
     final responses = serverSettings?['notify_responses'] ?? true;
     final messages = serverSettings?['notify_messages'] ?? true;
 
-    // 🆕 Синхронизируем локальные и серверные настройки
     await SettingsService.setResponsesNotifyEnabled(responses);
     await SettingsService.setMessagesNotifyEnabled(messages);
 
@@ -53,32 +55,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _responsesNotify = responses;
         _messagesNotify = messages;
         _language = lang;
+        _theme = theme;
+        _isPremium = isPremium;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: AppBar(
-              backgroundColor: Colors.black.withValues(alpha: 0.3),
+              backgroundColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
               elevation: 0,
               centerTitle: true,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios, color: Color(0xFFD4AF37)),
+                icon: Icon(Icons.arrow_back_ios, color: theme.primaryColor),
                 onPressed: () => Navigator.pop(context),
               ),
               title: Text(
                 'НАСТРОЙКИ',
                 style: GoogleFonts.montserrat(
-                  color: Colors.white,
+                  color: theme.textTheme.bodyLarge?.color,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 2.0,
                   fontSize: 16,
@@ -88,7 +94,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ),
-      body: BackgroundPattern(
+      body: AppBackground(
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -151,6 +157,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 12),
               _buildGlassCard(
                 children: [
+                  _buildThemeTile(),
+                  _buildDivider(),
                   _buildLanguageTile(),
                 ],
               ),
@@ -195,7 +203,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.description_outlined,
                     title: 'Правила сервиса',
                     onTap: () {
-                      // TODO: Открыть экран с правилами
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Скоро здесь будут правила! 📜')),
                       );
@@ -206,7 +213,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.support_agent,
                     title: 'Связаться с поддержкой',
                     onTap: () {
-                      // TODO: Открыть чат с поддержкой
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Поддержка: support@tet-a-tet.app 💌')),
                       );
@@ -222,7 +228,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Text(
                   'TET-A-TET • Закрытый клуб свиданий',
                   style: GoogleFonts.montserrat(
-                    color: Colors.white38,
+                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4) ?? Colors.white38,
                     fontSize: 11,
                     letterSpacing: 1.5,
                   ),
@@ -237,16 +243,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // 🎨 Заголовок раздела
   Widget _buildSectionHeader(String title, IconData icon) {
+    final theme = Theme.of(context);
+    
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFFD4AF37), size: 18),
+          Icon(icon, color: theme.primaryColor, size: 18),
           const SizedBox(width: 8),
           Text(
             title,
             style: GoogleFonts.montserrat(
-              color: const Color(0xFFD4AF37),
+              color: theme.primaryColor,
               fontSize: 13,
               fontWeight: FontWeight.bold,
               letterSpacing: 2.0,
@@ -259,22 +267,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // 🪟 Стеклянная карточка
   Widget _buildGlassCard({required List<Widget> children}) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
-              width: 1,
+    final theme = Theme.of(context);
+    final isPremium = theme.primaryColor == const Color(0xFFD4AF37);
+    
+    if (isPremium) {
+      // 👑 В золотой теме — стеклянный эффект с blur
+      return ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: theme.primaryColor.withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              children: children,
             ),
           ),
-          child: Column(
-            children: children,
-          ),
         ),
+      );
+    }
+    
+    // 🍷 В базовой теме — тёмная карточка без blur
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.primaryColor.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        children: children,
       ),
     );
   }
@@ -287,12 +316,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
+    final theme = Theme.of(context);
+    
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFFD4AF37), size: 24),
+      leading: Icon(icon, color: theme.primaryColor, size: 24),
       title: Text(
         title,
         style: GoogleFonts.montserrat(
-          color: Colors.white,
+          color: theme.textTheme.bodyLarge?.color,
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
@@ -300,14 +331,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       subtitle: Text(
         subtitle,
         style: GoogleFonts.montserrat(
-          color: Colors.white54,
+          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
           fontSize: 11,
         ),
       ),
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeThumbColor: const Color(0xFFD4AF37),
+        activeThumbColor: theme.primaryColor,
+        activeTrackColor: theme.primaryColor.withValues(alpha: 0.5),
         inactiveThumbColor: Colors.grey,
         inactiveTrackColor: Colors.grey.withValues(alpha: 0.3),
       ),
@@ -321,17 +353,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Color iconColor = const Color(0xFFD4AF37),
     required VoidCallback onTap,
   }) {
+    final theme = Theme.of(context);
+    
     return ListTile(
       leading: Icon(icon, color: iconColor, size: 24),
       title: Text(
         title,
         style: GoogleFonts.montserrat(
-          color: Colors.white,
+          color: theme.textTheme.bodyLarge?.color,
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
       ),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white38, size: 20),
+      trailing: Icon(
+        Icons.chevron_right, 
+        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4) ?? Colors.white38, 
+        size: 20,
+      ),
       onTap: onTap,
     );
   }
@@ -342,12 +380,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String title,
     required String value,
   }) {
+    final theme = Theme.of(context);
+    
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFFD4AF37), size: 24),
+      leading: Icon(icon, color: theme.primaryColor, size: 24),
       title: Text(
         title,
         style: GoogleFonts.montserrat(
-          color: Colors.white,
+          color: theme.textTheme.bodyLarge?.color,
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
@@ -355,7 +395,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       trailing: Text(
         value,
         style: GoogleFonts.montserrat(
-          color: Colors.white54,
+          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
           fontSize: 13,
         ),
       ),
@@ -364,12 +404,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // 🌐 Выбор языка
   Widget _buildLanguageTile() {
+    final theme = Theme.of(context);
+    
     return ListTile(
-      leading: const Icon(Icons.language, color: Color(0xFFD4AF37), size: 24),
+      leading: Icon(Icons.language, color: theme.primaryColor, size: 24),
       title: Text(
         'Язык / Language',
         style: GoogleFonts.montserrat(
-          color: Colors.white,
+          color: theme.textTheme.bodyLarge?.color,
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
@@ -377,20 +419,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+          color: theme.primaryColor.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+            color: theme.primaryColor.withValues(alpha: 0.4),
             width: 1,
           ),
         ),
         child: DropdownButton<String>(
           value: _language,
-          dropdownColor: const Color(0xFF1E1E1E),
+          dropdownColor: theme.scaffoldBackgroundColor,
           underline: const SizedBox(),
-          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFD4AF37), size: 20),
+          icon: Icon(Icons.arrow_drop_down, color: theme.primaryColor, size: 20),
           style: GoogleFonts.montserrat(
-            color: const Color(0xFFD4AF37),
+            color: theme.primaryColor,
             fontSize: 13,
             fontWeight: FontWeight.bold,
           ),
@@ -406,7 +448,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(value == 'ru' ? 'Язык изменён на русский 🇷🇺' : 'Language changed to English 🇬🇧'),
-                    backgroundColor: const Color(0xFFD4AF37),
+                    backgroundColor: theme.primaryColor,
                   ),
                 );
               }
@@ -419,8 +461,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // ➖ Разделитель
   Widget _buildDivider() {
+    final theme = Theme.of(context);
+    
     return Divider(
-      color: Colors.white.withValues(alpha: 0.05),
+      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.05) ?? Colors.white.withValues(alpha: 0.05),
       height: 1,
       indent: 72,
     );
@@ -428,23 +472,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // 🚪 Диалог выхода
   void _showLogoutDialog() {
+    final theme = Theme.of(context);
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: theme.scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Выйти из аккаунта?',
-          style: GoogleFonts.montserrat(color: Colors.white, fontWeight: FontWeight.bold),
+          style: GoogleFonts.montserrat(
+            color: theme.textTheme.bodyLarge?.color,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
           'Вам придётся снова вводить номер телефона для входа.',
-          style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 13),
+          style: GoogleFonts.montserrat(
+            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+            fontSize: 13,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Отмена', style: GoogleFonts.montserrat(color: Colors.white54)),
+            child: Text(
+              'Отмена',
+              style: GoogleFonts.montserrat(
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+              ),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -466,50 +523,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // 🗑️ Диалог удаления аккаунта
   void _showDeleteAccountDialog() {
+    final theme = Theme.of(context);
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: theme.scaffoldBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Удалить аккаунт?',
-          style: GoogleFonts.montserrat(color: Colors.white, fontWeight: FontWeight.bold),
+          style: GoogleFonts.montserrat(
+            color: theme.textTheme.bodyLarge?.color,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
           'Это действие нельзя отменить. Все ваши данные, фото и встречи будут удалены навсегда.',
-          style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 13),
+          style: GoogleFonts.montserrat(
+            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+            fontSize: 13,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Отмена', style: GoogleFonts.montserrat(color: Colors.white54)),
+            child: Text(
+              'Отмена',
+              style: GoogleFonts.montserrat(
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+              ),
+            ),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               
-              // Показываем индикатор загрузки
               showDialog(
                 context: context,
                 barrierDismissible: false,
-                builder: (context) => const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+                builder: (context) => Center(
+                  child: CircularProgressIndicator(color: theme.primaryColor),
                 ),
               );
               
               final success = await _api.deleteAccount();
               
               if (mounted) {
-                Navigator.pop(context); // Закрываем индикатор
+                Navigator.pop(context);
                 
                 if (success) {
-                  // Успех — переходим на экран входа
                   Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(builder: (context) => const LoginScreen()),
                     (route) => false,
                   );
                 } else {
-                  // Ошибка
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Ошибка удаления аккаунта'),
@@ -522,6 +589,97 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Text('Удалить', style: GoogleFonts.montserrat(color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
         ],
+      ),
+    );
+  }
+
+  // 🎨 Выбор темы
+  Widget _buildThemeTile() {
+    final theme = Theme.of(context);
+    // 🆕 Брендовый золотой цвет для пометки PREMIUM — всегда золотой
+    const premiumGold = Color(0xFFD4AF37);
+    
+    return ListTile(
+      leading: Icon(Icons.palette, color: theme.primaryColor, size: 24),
+      title: Text(
+        'Тема оформления',
+        style: GoogleFonts.montserrat(
+          color: theme.textTheme.bodyLarge?.color,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      trailing: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: theme.primaryColor.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: theme.primaryColor.withValues(alpha: 0.4),
+            width: 1,
+          ),
+        ),
+        child: DropdownButton<String>(
+          value: _theme,
+          dropdownColor: theme.scaffoldBackgroundColor,
+          underline: const SizedBox(),
+          icon: Icon(Icons.arrow_drop_down, color: theme.primaryColor, size: 20),
+          style: GoogleFonts.montserrat(
+            color: theme.primaryColor,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+          items: [
+            const DropdownMenuItem(value: 'basic', child: Text('🍷 Базовая')),
+            DropdownMenuItem(
+              value: 'premium',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('👑 Золотая'),
+                  if (!_isPremium) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: premiumGold,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'PREMIUM',
+                        style: GoogleFonts.montserrat(
+                          color: Colors.black,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+          onChanged: _isPremium
+              ? (value) async {
+                  if (value != null) {
+                    setState(() => _theme = value);
+                    await SettingsService.setTheme(value);
+                    if (mounted) {
+                      final appState = context.findAncestorStateOfType<TetATetAppState>();
+                      if (appState != null) {
+                        appState.loadTheme();
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(value == 'basic' ? 'Тема изменена на базовую 🍷' : 'Тема изменена на золотую 👑'),
+                          backgroundColor: theme.primaryColor,
+                        ),
+                      );
+                    }
+                  }
+                }
+              : null,
+        ),
       ),
     );
   }

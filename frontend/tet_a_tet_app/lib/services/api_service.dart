@@ -552,4 +552,15 @@ class ApiService {
       return false;
     }
   }
+
+  // 🆕 Получить статус премиума
+  Future<bool> isPremium() async {
+    try {
+      final profile = await getProfile();
+      return profile?['is_premium'] ?? false;
+    } catch (e) {
+      print('❌ Ошибка получения статуса премиума: $e');
+      return false;
+    }
+  }
 }

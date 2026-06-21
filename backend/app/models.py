@@ -12,6 +12,7 @@ class User(Base):
     phone = Column(String(20), unique=True, index=True, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
     is_admin = Column(Boolean, default=False, nullable=False)
+    is_premium = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     
     # Поля для SMS-кода и защиты

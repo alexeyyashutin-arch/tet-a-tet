@@ -30,6 +30,7 @@ class UserProfile(BaseModel):
     id: UUID
     phone: str
     is_verified: bool
+    is_premium: bool
     username: str | None = None
     birth_date: date | None = None
     gender: str | None = None
