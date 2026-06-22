@@ -23,3 +23,4 @@ frontend/tet_a_tet_app/firebase_options.dart
 *.swo
 .DS_Store
 Thumbs.db
+.env
