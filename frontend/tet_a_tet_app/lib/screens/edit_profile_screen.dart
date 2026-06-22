@@ -6,6 +6,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
+import '../utils/url_helper.dart';
 import '../widgets/background_pattern.dart';
 import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
@@ -422,7 +423,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     )
                                   : currentAvatarUrl != null
                                       ? CachedNetworkImage(
-                                          imageUrl: '${ApiService.baseUrl}$currentAvatarUrl',
+                                          imageUrl: UrlHelper.getImageUrl(currentAvatarUrl, ApiService.baseUrl),
                                           fit: BoxFit.cover,
                                           placeholder: (context, url) => Container(
                                             color: const Color(0xFF1E1E1E),

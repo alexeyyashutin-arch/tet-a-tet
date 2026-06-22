@@ -9,6 +9,7 @@ from ..database import get_db
 from ..models import User, Photo, AlbumAccess
 from ..schemas import PhotoResponse, PhotoUploadResponse, GrantAccessRequest, AccessUserInfo
 from ..dependencies import get_current_user
+from ..s3_client import upload_file_to_s3, delete_file_from_s3  # 🆕 Импортируем S3
 
 router = APIRouter(prefix="/photos", tags=["Фотографии"])
 
@@ -27,26 +28,27 @@ async def upload_photo(
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Файл должен быть изображением")
     
-    # Генерируем имя файла
-    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
-    filename = f"{uuid.uuid4()}.{ext}"
-    filepath = f"uploads/{filename}"
-    
-    # Сохраняем
-    with open(filepath, "wb") as buffer:
-        buffer.write(await file.read())
-    
-    # Создаём запись в БД
-    photo = Photo(
-        user_id=current_user.id,
-        album_type=album_type,
-        url=f"/uploads/{filename}"
-    )
-    db.add(photo)
-    await db.commit()
-    await db.refresh(photo)
-    
-    return photo
+    try:
+        # 🆕 Загружаем файл в S3 вместо локального сохранения
+        s3_url = await upload_file_to_s3(file, folder=f"albums/{album_type}")
+        
+        # Создаём запись в БД с S3 URL
+        photo = Photo(
+            user_id=current_user.id,
+            album_type=album_type,
+            url=s3_url  # 🆕 Теперь храним полный S3 URL
+        )
+        db.add(photo)
+        await db.commit()
+        await db.refresh(photo)
+        
+        return photo
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка загрузки фото: {str(e)}"
+        )
 
 @router.get("/public/{user_id}", response_model=List[PhotoResponse])
 async def get_public_photos(
@@ -192,11 +194,12 @@ async def delete_photo(
     if photo.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Нельзя удалять чужие фото")
     
-    # Удаляем файл с диска
+    # 🆕 Удаляем файл из S3
     try:
-        os.remove(photo.url.lstrip("/"))
-    except:
-        pass
+        await delete_file_from_s3(photo.url)
+    except Exception as e:
+        print(f"⚠️ Не удалось удалить файл из S3: {e}")
+        # Продолжаем удаление из БД, даже если файл не удалился
     
     await db.delete(photo)
     await db.commit()

@@ -9,6 +9,7 @@ import uuid
 from ..database import get_db
 from ..models import User, VerificationRequest
 from ..dependencies import get_current_user
+from ..s3_client import upload_file_to_s3, delete_file_from_s3  # 🆕 Импортируем S3
 
 router = APIRouter(prefix="/verification", tags=["Verification"])
 
@@ -38,29 +39,31 @@ async def create_verification_request(
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Файл должен быть изображением")
     
-    # Сохраняем файл
-    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
-    filename = f"verification_{uuid.uuid4()}.{ext}"
-    filepath = f"uploads/{filename}"
-    
-    with open(filepath, "wb") as buffer:
-        buffer.write(await file.read())
-    
-    # Создаём заявку
-    new_request = VerificationRequest(
-        user_id=current_user.id,
-        photo_url=f"/uploads/{filename}",
-        status="pending"
-    )
-    db.add(new_request)
-    await db.commit()
-    await db.refresh(new_request)
-    
-    return {
-        "message": "Заявка на верификацию отправлена!",
-        "request_id": str(new_request.id),
-        "status": new_request.status
-    }
+    try:
+        # 🆕 Загружаем файл в S3
+        s3_url = await upload_file_to_s3(file, folder="verification")
+        
+        # Создаём заявку с S3 URL
+        new_request = VerificationRequest(
+            user_id=current_user.id,
+            photo_url=s3_url,  # 🆕 Теперь храним полный S3 URL
+            status="pending"
+        )
+        db.add(new_request)
+        await db.commit()
+        await db.refresh(new_request)
+        
+        return {
+            "message": "Заявка на верификацию отправлена!",
+            "request_id": str(new_request.id),
+            "status": new_request.status
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка загрузки фото: {str(e)}"
+        )
 
 # 🆕 Получить статус своей заявки
 @router.get("/status")

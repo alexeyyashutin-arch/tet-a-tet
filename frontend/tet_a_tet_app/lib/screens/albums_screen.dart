@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import 'package:reorderable_grid_view/reorderable_grid_view.dart';
 import 'dart:async';
 import '../widgets/app_background.dart';
+import '../utils/url_helper.dart';
 
 class AlbumsScreen extends StatefulWidget {
   final String? userId;
@@ -314,7 +315,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
                 child: Stack(
                   children: [
                     CachedNetworkImage(
-                      imageUrl: '${ApiService.baseUrl}${photo['url']}',
+                      imageUrl: UrlHelper.getImageUrl(photo['url'], ApiService.baseUrl),
                       width: double.infinity,
                       height: double.infinity,
                       fit: BoxFit.cover,
@@ -410,7 +411,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
             child: Stack(
               children: [
                 CachedNetworkImage(
-                  imageUrl: '${ApiService.baseUrl}${photo['url']}',
+                  imageUrl: UrlHelper.getImageUrl(photo['url'], ApiService.baseUrl),
                   width: double.infinity,
                   height: double.infinity,
                   fit: BoxFit.cover,
@@ -603,7 +604,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
                       minScale: 0.5,
                       maxScale: 4.0,
                       child: CachedNetworkImage(
-                        imageUrl: '${ApiService.baseUrl}$photoUrl',
+                        imageUrl: UrlHelper.getImageUrl(photoUrl, ApiService.baseUrl),
                         fit: BoxFit.contain,
                         memCacheWidth: 1200,
                         placeholder: (context, url) => CircularProgressIndicator(color: theme.primaryColor),

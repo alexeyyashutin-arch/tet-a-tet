@@ -7,8 +7,9 @@ from typing import List
 
 from ..database import get_db
 from ..models import User, Meeting, MeetingResponse as MeetingResponseModel
-from ..schemas import MeetingCreate, MeetingResponse, MyMeetingsResponse  # 🆕 Добавили новую схему
+from ..schemas import MeetingCreate, MeetingResponse, MyMeetingsResponse
 from ..dependencies import get_current_user
+from ..redis_client import cache_get, cache_set, cache_delete_pattern  # 🆕 Подключаем Redis
 
 router = APIRouter(prefix="/meetings", tags=["Встречи"])
 
@@ -48,6 +49,9 @@ async def create_meeting(
     await db.commit()
     await db.refresh(meeting)
     
+    # 🆕 Инвалидируем кэш ленты встреч (все пользователи увидят новую встречу)
+    await cache_delete_pattern("meetings:list:*")
+    
     return MeetingResponse(
         id=meeting.id,
         user_id=meeting.user_id,
@@ -74,6 +78,17 @@ async def get_active_meetings(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # 🆕 Формируем ключ кэша на основе параметров
+    cache_key = f"meetings:list:{current_user.id}:{min_age}:{max_age}:{gender}:{current_user.city}"
+    
+    # 🆕 Пытаемся получить данные из кэша
+    cached_data = await cache_get(cache_key)
+    if cached_data:
+        print(f"🚀 Кэш hit для {cache_key}")
+        return cached_data
+    
+    print(f"💾 Кэш miss для {cache_key} — загружаем из БД")
+    
     from datetime import timedelta
     
     # Базовый запрос: берем все активные встречи и джойним с пользователями
@@ -84,12 +99,8 @@ async def get_active_meetings(
     if gender:
         stmt = stmt.where(User.gender == gender)
     
-    # 🆕 МАГИЯ ФИЛЬТРАЦИИ ПО ВОЗРАСТУ!
     today = date.today()
     if min_age is not None or max_age is not None:
-        # Вычисляем диапазон дат рождения
-        # Если ищем мин. возраст 25, значит дата рождения должна быть <= (сегодня - 25 лет)
-        # Если ищем макс. возраст 35, значит дата рождения должна быть >= (сегодня - 35 лет)
         if min_age is not None:
             max_birth_date = today.replace(year=today.year - min_age)
             stmt = stmt.where(User.birth_date <= max_birth_date)
@@ -98,7 +109,6 @@ async def get_active_meetings(
             min_birth_date = today.replace(year=today.year - max_age)
             stmt = stmt.where(User.birth_date >= min_birth_date)
 
-    # 🆕 Фильтрация по городу (если у текущего пользователя указан город)
     if current_user.city:
         stmt = stmt.where(User.city == current_user.city)
         
@@ -136,9 +146,14 @@ async def get_active_meetings(
             has_responded=has_responded,
         ))
     
+    # 🆕 Сохраняем результат в кэш на 2 минуты (120 секунд)
+    # Конвертируем Pydantic модели в dict для JSON-сериализации
+    meetings_dict = [m.model_dump() for m in meetings]
+    await cache_set(cache_key, meetings_dict, expire=120)
+    
     return meetings
 
-@router.get("/my", response_model=MyMeetingsResponse)  # 🆕 Изменили тип возврата
+@router.get("/my", response_model=MyMeetingsResponse)
 async def get_my_meetings(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -151,26 +166,24 @@ async def get_my_meetings(
     meetings = result.scalars().all()
     
     response_list = []
-    total_unread = 0  # 🆕 Общий счётчик непрочитанных откликов
+    total_unread = 0
 
     for m in meetings:
-        # 🆕 Считаем общее количество откликов
         count_stmt = select(func.count(MeetingResponseModel.id)).where(
             MeetingResponseModel.meeting_id == m.id
         )
         count_result = await db.execute(count_stmt)
         responses_count = count_result.scalar() or 0
         
-        # 🆕 Считаем непрочитанные отклики (только pending — те, что ждут решения!)
         unread_stmt = select(func.count(MeetingResponseModel.id)).where(
             MeetingResponseModel.meeting_id == m.id,
             MeetingResponseModel.is_read == False,
-            MeetingResponseModel.status == 'pending'  # 🆕 Только ожидающие решения!
+            MeetingResponseModel.status == 'pending'
         )
         unread_result = await db.execute(unread_stmt)
         unread_count = unread_result.scalar() or 0
         
-        total_unread += unread_count  # 🆕 Добавляем в общую копилку
+        total_unread += unread_count
         
         response_list.append(MeetingResponse(
             id=m.id,
@@ -190,11 +203,10 @@ async def get_my_meetings(
             creator_age=calculate_age(current_user.birth_date),
             creator_gender=current_user.gender,
             responses_count=responses_count,
-            unread_responses_count=unread_count,  # 🆕 Передаём количество непрочитанных для каждой встречи
+            unread_responses_count=unread_count,
             has_responded=True,
         ))
     
-    # 🆕 Возвращаем обёрнутый ответ с общим количеством непрочитанных
     return MyMeetingsResponse(
         meetings=response_list,
         total_unread_responses=total_unread
@@ -218,5 +230,8 @@ async def cancel_meeting(
     
     meeting.status = "cancelled"
     await db.commit()
+    
+    # 🆕 Инвалидируем кэш ленты встреч
+    await cache_delete_pattern("meetings:list:*")
     
     return {"message": "Встреча отменена"}

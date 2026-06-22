@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
+import '../utils/url_helper.dart';
 import '../widgets/app_background.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
@@ -148,7 +149,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                         aspectRatio: 1.0, 
                         child: _profile?['avatar_url'] != null
                             ? CachedNetworkImage(
-                                imageUrl: '${ApiService.baseUrl}${_profile!['avatar_url']}',
+                                imageUrl: UrlHelper.getImageUrl(_profile!['avatar_url'], ApiService.baseUrl),
                                 fit: BoxFit.cover,
                                 placeholder: (context, url) => Container(
                                   color: theme.cardTheme.color,

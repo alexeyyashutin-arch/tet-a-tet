@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
+import '../utils/url_helper.dart';
 import 'chat_screen.dart';
 import '../widgets/app_background.dart';
 
@@ -165,7 +166,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 radius: 24,
                 backgroundColor: theme.primaryColor.withValues(alpha: 0.2),
                 backgroundImage: opponentAvatar != null 
-                    ? CachedNetworkImageProvider('${ApiService.baseUrl}$opponentAvatar') 
+                    ? CachedNetworkImageProvider(UrlHelper.getImageUrl(opponentAvatar, ApiService.baseUrl),) 
                     : null,
                 child: opponentAvatar == null 
                     ? Icon(Icons.person, color: theme.primaryColor, size: 28) 

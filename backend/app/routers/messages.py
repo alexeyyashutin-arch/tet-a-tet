@@ -8,6 +8,7 @@ from ..database import get_db
 from ..models import Meeting, MeetingResponse, Message, User
 from ..schemas import MessageCreate, MessageResponse
 from ..dependencies import get_current_user
+from ..websocket_manager import manager  # 🆕 Импортируем менеджер WebSocket
 
 router = APIRouter(prefix="/messages", tags=["Messages"])
 
@@ -28,16 +29,12 @@ async def send_message(
         raise HTTPException(status_code=400, detail="Встреча отменена")
     
     # Проверяем право писать в этот чат
-    # Право имеют: автор встречи ИЛИ тот, кто откликнулся и был принят
-    
-    # Является ли текущий пользователь автором встречи?
     is_author = meeting.user_id == current_user.id
     
-    # Откликался ли пользователь (разрешаем писать, если есть хотя бы отклик pending)
     stmt = select(MeetingResponse).where(
         MeetingResponse.meeting_id == data.meeting_id,
         MeetingResponse.user_id == current_user.id,
-        MeetingResponse.status.in_(["pending", "accepted", "confirmed"]) # 🆕 ДОЛЖНО БЫТЬ 'pending'!
+        MeetingResponse.status.in_(["pending", "accepted", "confirmed"])
     )
     result = await db.execute(stmt)
     response = result.scalar_one_or_none()
@@ -56,19 +53,28 @@ async def send_message(
     await db.commit()
     await db.refresh(new_message)
 
+    # 🆕 РАССЫЛАЕМ СООБЩЕНИЕ ЧЕРЕЗ WEBSOCKET ВСЕМ В КОМНАТЕ!
+    await manager.broadcast(str(data.meeting_id), {
+        "type": "new_message",
+        "id": str(new_message.id),
+        "text": data.text,
+        "sender_id": str(current_user.id),
+        "sender_username": current_user.username,
+        "sender_avatar_url": current_user.avatar_url,
+        "is_read": False,
+        "created_at": new_message.created_at.isoformat()
+    })
+
     # 🆕 Отправляем Push-уведомление другим участникам чата
     from app.services.push_service import send_push_notification
     
-    # Находим всех участников чата
     participants = []
     
-    # 1. Автор встречи
     if meeting.user_id != current_user.id:
         author = await db.get(User, meeting.user_id)
         if author and author.fcm_token:
             participants.append(author)
     
-    # 2. Тот, кто откликнулся (если отправитель — автор встречи)
     if is_author:
         stmt = select(MeetingResponse).where(
             MeetingResponse.meeting_id == data.meeting_id,
@@ -82,9 +88,8 @@ async def send_message(
             if responder and responder.fcm_token and responder.id != current_user.id:
                 participants.append(responder)
     
-    # Отправляем push всем участникам (кроме отправителя)
     for participant in participants:
-        if participant.notify_messages:  # 🆕 Проверяем notify_messages!
+        if participant.notify_messages:
             await send_push_notification(
                 fcm_token=participant.fcm_token,
                 title="Новое сообщение 💬",
@@ -113,18 +118,16 @@ async def get_meeting_messages(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Проверяем, что встреча существует
     meeting = await db.get(Meeting, meeting_id)
     if not meeting:
         raise HTTPException(status_code=404, detail="Встреча не найдена")
     
-    # Проверяем право доступа к чату
     is_author = meeting.user_id == current_user.id
     
     stmt = select(MeetingResponse).where(
         MeetingResponse.meeting_id == meeting_id,
         MeetingResponse.user_id == current_user.id,
-        MeetingResponse.status.in_(["pending", "accepted", "confirmed"]) # 🆕 Добавили 'pending'!
+        MeetingResponse.status.in_(["pending", "accepted", "confirmed"])
     )
     result = await db.execute(stmt)
     response = result.scalar_one_or_none()
@@ -132,7 +135,6 @@ async def get_meeting_messages(
     if not is_author and not response:
         raise HTTPException(status_code=403, detail="У вас нет доступа к этому чату")
     
-    # Получаем все сообщения для этой встречи
     stmt = select(Message, User).join(User, Message.sender_id == User.id).where(
         Message.meeting_id == meeting_id
     ).order_by(Message.created_at.asc())
@@ -162,7 +164,6 @@ async def mark_messages_as_read(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Находим все непрочитанные сообщения в этом чате, где отправитель НЕ текущий пользователь
     stmt = select(Message).where(
         Message.meeting_id == meeting_id,
         Message.sender_id != current_user.id,
@@ -171,11 +172,17 @@ async def mark_messages_as_read(
     result = await db.execute(stmt)
     messages = result.scalars().all()
     
-    # Помечаем их как прочитанные
     for msg in messages:
         msg.is_read = True
     
     await db.commit()
+    
+    # 🆕 Рассылаем обновление статусов прочтения через WebSocket
+    await manager.broadcast(str(meeting_id), {
+        "type": "messages_read",
+        "reader_id": str(current_user.id)
+    })
+    
     return {"message": f"Помечено как прочитано: {len(messages)} сообщений"}
 
 # 4. Получить список всех моих чатов
@@ -184,14 +191,10 @@ async def get_my_chats(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Находим все встречи, где текущий пользователь либо автор, либо откликнулся (и статус accepted/confirmed)
-    
-    # 1. Встречи, где я автор
     stmt = select(Meeting).where(Meeting.user_id == current_user.id)
     result = await db.execute(stmt)
     my_meetings_as_author = result.scalars().all()
     
-    # 2. Встречи, где я откликнулся и меня приняли
     stmt = select(Meeting).join(MeetingResponse).where(
         MeetingResponse.user_id == current_user.id,
         MeetingResponse.status.in_(["pending","accepted", "confirmed"])
@@ -199,10 +202,8 @@ async def get_my_chats(
     result = await db.execute(stmt)
     my_meetings_as_responder = result.scalars().all()
     
-    # Объединяем (убираем дубликаты)
     all_meetings = {m.id: m for m in my_meetings_as_author + my_meetings_as_responder}.values()
 
-    # 🆕 Фильтруем: оставляем только встречи с хотя бы одним сообщением
     meetings_with_messages = []
     for meeting in all_meetings:
         stmt = select(Message).where(Message.meeting_id == meeting.id).limit(1)
@@ -214,28 +215,23 @@ async def get_my_chats(
     
     chats = []
     for meeting in all_meetings:
-        # Получаем последнее сообщение
         stmt = select(Message).where(Message.meeting_id == meeting.id).order_by(Message.created_at.desc()).limit(1)
         result = await db.execute(stmt)
         last_message = result.scalar_one_or_none()
         
-        # Получаем имя собеседника
         if meeting.user_id == current_user.id:
-            # Я автор, собеседник — тот, кто откликнулся (берем первого с любым активным статусом)
             stmt = select(User).join(MeetingResponse).where(
                 MeetingResponse.meeting_id == meeting.id,
-                MeetingResponse.status.in_(["pending", "accepted", "confirmed"]) # 🆕 Добавили 'pending'!
+                MeetingResponse.status.in_(["pending", "accepted", "confirmed"])
             ).limit(1)
             result = await db.execute(stmt)
             opponent = result.scalar_one_or_none()
         else:
-            # Я откликнувшийся, собеседник — автор встречи
             opponent = await db.get(User, meeting.user_id)
         
         opponent_name = opponent.username if opponent else "Собеседник"
         opponent_avatar = opponent.avatar_url if opponent else None
         
-        # Считаем количество непрочитанных
         stmt = select(Message).where(
             Message.meeting_id == meeting.id,
             Message.sender_id != current_user.id,
@@ -254,7 +250,6 @@ async def get_my_chats(
             "unread_count": unread_count
         })
     
-    # Сортируем по времени последнего сообщения (самые свежие сверху)
     chats.sort(key=lambda x: x['last_message_time'] or '', reverse=True)
     
     return chats

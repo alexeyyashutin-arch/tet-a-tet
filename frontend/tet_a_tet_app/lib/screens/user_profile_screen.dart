@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
+import '../utils/url_helper.dart';
 import '../widgets/app_background.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -164,7 +165,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         aspectRatio: 1.0,
                         child: _user!['avatar_url'] != null
                             ? CachedNetworkImage(
-                                imageUrl: '${ApiService.baseUrl}${_user!['avatar_url']}',
+                                imageUrl: UrlHelper.getImageUrl(_user!['avatar_url'], ApiService.baseUrl),
                                 fit: BoxFit.cover,
                                 placeholder: (context, url) => Container(
                                   color: theme.cardTheme.color,
@@ -351,7 +352,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           return ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: CachedNetworkImage(
-                              imageUrl: '${ApiService.baseUrl}$photoUrl',
+                              imageUrl: UrlHelper.getImageUrl(photoUrl, ApiService.baseUrl),
                               fit: BoxFit.cover,
                               placeholder: (context, url) => Container(
                                 color: theme.cardTheme.color,

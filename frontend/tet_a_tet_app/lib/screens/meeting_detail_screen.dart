@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
+import '../utils/url_helper.dart';
 import '../widgets/app_background.dart';
 import 'chat_screen.dart';
 import 'user_profile_screen.dart';
@@ -88,7 +89,7 @@ class MeetingDetailScreen extends StatelessWidget {
                           aspectRatio: 1.0,
                           child: meeting['creator_avatar_url'] != null
                               ? CachedNetworkImage(
-                                  imageUrl: '${ApiService.baseUrl}${meeting['creator_avatar_url']}',
+                                  imageUrl: UrlHelper.getImageUrl(meeting['creator_avatar_url'], ApiService.baseUrl),
                                   fit: BoxFit.cover,
                                   placeholder: (context, url) => Container(
                                     color: theme.cardTheme.color,
