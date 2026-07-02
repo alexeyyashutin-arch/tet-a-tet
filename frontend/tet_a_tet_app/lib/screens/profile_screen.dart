@@ -21,16 +21,15 @@ class ProfileScreenState extends State<ProfileScreen> {
   final _api = ApiService();
   Map<String, dynamic>? _profile;
   List<dynamic> _myMeetings = [];
-  List<dynamic> _archivedResponses = []; // 🆕 Архивные заявки
+  List<dynamic> _archivedResponses = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    loadProfile(); // 🆕 Вызываем публичный метод
+    loadProfile();
   }
 
-  // 🆕 Убрали подчёркивание, чтобы можно было вызывать извне
   Future<void> loadProfile() async {
     final data = await _api.getProfile();
     final response = await _api.getMyMeetings();
@@ -44,6 +43,30 @@ class ProfileScreenState extends State<ProfileScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  // 👑 Тот же метод, что в настройках
+  Widget _buildGlassCard({required List<Widget> children}) {
+    final theme = Theme.of(context);
+    
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.primaryColor.withValues(alpha: 0.2),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            children: children,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -226,43 +249,41 @@ class ProfileScreenState extends State<ProfileScreen> {
               // 📞 Контактная информация
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: theme.cardTheme.color,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'КОНТАКТЫ',
-                        style: GoogleFonts.montserrat(
-                          color: theme.primaryColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
+                child: _buildGlassCard(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.phone, color: theme.primaryColor, size: 20),
-                          const SizedBox(width: 12),
                           Text(
-                            phone,
+                            'КОНТАКТЫ',
                             style: GoogleFonts.montserrat(
-                              color: theme.textTheme.bodyLarge?.color,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                              color: theme.primaryColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5,
                             ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Icon(Icons.phone, color: theme.primaryColor, size: 20),
+                              const SizedBox(width: 12),
+                              Text(
+                                phone,
+                                style: GoogleFonts.montserrat(
+                                  color: theme.textTheme.bodyLarge?.color,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
         
@@ -276,61 +297,59 @@ class ProfileScreenState extends State<ProfileScreen> {
         
               const SizedBox(height: 24),
         
-              // 🌟 НОВАЯ СЕКЦИЯ: ОБО МНЕ
+              // 🌟 СЕКЦИЯ: ОБО МНЕ
               if (_profile?['bio'] != null || _hasAnyNewProfileFields()) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: theme.cardTheme.color,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'ОБО МНЕ',
-                          style: GoogleFonts.montserrat(
-                            color: theme.primaryColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        if (_profile?['bio'] != null && _profile!['bio'].toString().isNotEmpty) ...[
-                          Text(
-                            _profile!['bio'],
-                            style: GoogleFonts.montserrat(
-                              color: theme.textTheme.bodyLarge?.color,
-                              fontSize: 15,
-                              height: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Divider(color: theme.primaryColor, height: 1, thickness: 0.5),
-                          const SizedBox(height: 16),
-                        ],
-        
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
+                  child: _buildGlassCard(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (_profile?['height'] != null) _buildInfoBadge(Icons.height, '${_profile!['height']} см'),
-                            if (_profile?['weight'] != null) _buildInfoBadge(Icons.monitor_weight, '${_profile!['weight']} кг'),
-                            if (_profile?['body_type'] != null) _buildInfoBadge(Icons.fitness_center, _profile!['body_type']),
-                            if (_profile?['alcohol_attitude'] != null) _buildInfoBadge(Icons.wine_bar, _profile!['alcohol_attitude']),
-                            if (_profile?['smoking_attitude'] != null) _buildInfoBadge(Icons.smoke_free, _profile!['smoking_attitude']),
-                            if (_profile?['marital_status'] != null) _buildInfoBadge(Icons.favorite_outline, _profile!['marital_status']),
-                            if (_profile?['has_children'] != null) _buildInfoBadge(Icons.child_care, _profile!['has_children'] == 'Есть' ? 'Есть дети' : 'Нет детей'),
+                            Text(
+                              'ОБО МНЕ',
+                              style: GoogleFonts.montserrat(
+                                color: theme.primaryColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            
+                            if (_profile?['bio'] != null && _profile!['bio'].toString().isNotEmpty) ...[
+                              Text(
+                                _profile!['bio'],
+                                style: GoogleFonts.montserrat(
+                                  color: theme.textTheme.bodyLarge?.color,
+                                  fontSize: 15,
+                                  height: 1.5,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Divider(color: theme.primaryColor, height: 1, thickness: 0.5),
+                              const SizedBox(height: 16),
+                            ],
+          
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: [
+                                if (_profile?['height'] != null) _buildInfoBadge(Icons.height, '${_profile!['height']} см'),
+                                if (_profile?['weight'] != null) _buildInfoBadge(Icons.monitor_weight, '${_profile!['weight']} кг'),
+                                if (_profile?['body_type'] != null) _buildInfoBadge(Icons.fitness_center, _profile!['body_type']),
+                                if (_profile?['alcohol_attitude'] != null) _buildInfoBadge(Icons.wine_bar, _profile!['alcohol_attitude']),
+                                if (_profile?['smoking_attitude'] != null) _buildInfoBadge(Icons.smoke_free, _profile!['smoking_attitude']),
+                                if (_profile?['marital_status'] != null) _buildInfoBadge(Icons.favorite_outline, _profile!['marital_status']),
+                                if (_profile?['has_children'] != null) _buildInfoBadge(Icons.child_care, _profile!['has_children'] == 'Есть' ? 'Есть дети' : 'Нет детей'),
+                              ],
+                            ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -344,58 +363,53 @@ class ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_myMeetings.where((m) => _isArchivedMeeting(m)).isNotEmpty) ...[
-                      Container(
-                        decoration: BoxDecoration(
-                          color: theme.cardTheme.color,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
-                        ),
-                        child: Theme(
-                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                          child: ExpansionTile(
-                            title: Text(
-                              'АРХИВ ВСТРЕЧ', 
-                              style: GoogleFonts.montserrat(
-                                color: theme.textTheme.bodyLarge?.color, 
-                                fontSize: 14, 
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.0,
-                              )
-                            ),
-                            iconColor: theme.primaryColor,
-                            collapsedIconColor: theme.primaryColor,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
-                                child: Column(
-                                  children: _myMeetings
-                                      .where((m) => m['status'] != 'active')
-                                      .map((m) => _buildArchiveMeetingCard(m))
-                                      .toList(),
-                                ),
+                      _buildGlassCard(
+                        children: [
+                          Theme(
+                            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                            child: ExpansionTile(
+                              title: Text(
+                                'АРХИВ ВСТРЕЧ', 
+                                style: GoogleFonts.montserrat(
+                                  color: theme.textTheme.bodyLarge?.color, 
+                                  fontSize: 14, 
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                )
                               ),
-                            ],
+                              iconColor: theme.primaryColor,
+                              collapsedIconColor: theme.primaryColor,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
+                                  child: Column(
+                                    children: _myMeetings
+                                        .where((m) => m['status'] != 'active')
+                                        .map((m) => _buildArchiveMeetingCard(m))
+                                        .toList(),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ] else ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: theme.cardTheme.color,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Архив встреч пуст',
-                            style: GoogleFonts.montserrat(
-                              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                              fontSize: 14,
+                      _buildGlassCard(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Center(
+                              child: Text(
+                                'Архив встреч пуст',
+                                style: GoogleFonts.montserrat(
+                                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                                  fontSize: 14,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ],
@@ -411,38 +425,35 @@ class ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_archivedResponses.isNotEmpty) ...[
-                      Container(
-                        decoration: BoxDecoration(
-                          color: theme.cardTheme.color,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
-                        ),
-                        child: Theme(
-                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                          child: ExpansionTile(
-                            title: Text(
-                              'АРХИВ ЗАЯВОК', 
-                              style: GoogleFonts.montserrat(
-                                color: theme.textTheme.bodyLarge?.color, 
-                                fontSize: 14, 
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.0,
-                              )
-                            ),
-                            iconColor: theme.primaryColor,
-                            collapsedIconColor: theme.primaryColor,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
-                                child: Column(
-                                  children: _archivedResponses
-                                      .map((r) => _buildArchivedResponseCard(r))
-                                      .toList(),
-                                ),
+                      _buildGlassCard(
+                        children: [
+                          Theme(
+                            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                            child: ExpansionTile(
+                              title: Text(
+                                'АРХИВ ЗАЯВОК', 
+                                style: GoogleFonts.montserrat(
+                                  color: theme.textTheme.bodyLarge?.color, 
+                                  fontSize: 14, 
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                )
                               ),
-                            ],
+                              iconColor: theme.primaryColor,
+                              collapsedIconColor: theme.primaryColor,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0),
+                                  child: Column(
+                                    children: _archivedResponses
+                                        .map((r) => _buildArchivedResponseCard(r))
+                                        .toList(),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ],
@@ -453,86 +464,6 @@ class ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  // 🃏 Карточка активной встречи (упрощенная и стильная)
-  Widget _buildActiveMeetingCard(Map<String, dynamic> meeting) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            meeting['title'],
-            style: GoogleFonts.montserrat(
-              color: Colors.white, 
-              fontSize: 15, 
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.calendar_today, color: Color(0xFFD4AF37), size: 16),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  _getFormattedDateTime(meeting['meeting_date'], meeting['meeting_time']),
-                  style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-          if (meeting['location'] != null) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                const Icon(Icons.location_on, color: Color(0xFFD4AF37), size: 16),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    meeting['location'],
-                    style: GoogleFonts.montserrat(color: Colors.white70, fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    backgroundColor: const Color(0xFF1E1E1E),
-                    title: const Text('Отменить встречу?', style: TextStyle(color: Colors.white)),
-                    content: const Text('Вы уверены?', style: TextStyle(color: Colors.grey)),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Нет')),
-                      TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Да', style: TextStyle(color: Colors.redAccent))),
-                    ],
-                  ),
-                );
-                if (confirm == true) {
-                  await _api.cancelMeeting(meeting['id'].toString());
-                  loadProfile();
-                }
-              },
-              icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 18),
-              label: const Text('Отменить', style: TextStyle(color: Colors.redAccent, fontSize: 13)),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -692,20 +623,16 @@ class ProfileScreenState extends State<ProfileScreen> {
     return '${meetingDate.day} ${months[meetingDate.month - 1]}, $timeStr';
   }
 
-  // 🆕 Проверяем, должна ли встреча быть в архиве
   bool _isArchivedMeeting(Map<String, dynamic> meeting) {
     final status = meeting['status'];
     final dateStr = meeting['meeting_date'];
     
-    // Отменённые — всегда в архиве
     if (status == 'cancelled') return true;
     
-    // Подтверждённые — только если дата уже прошла
     if (status == 'confirmed' && dateStr != null) {
       try {
         final meetingDate = DateTime.parse(dateStr);
         final today = DateTime.now();
-        // Сравниваем только даты (без времени)
         return meetingDate.year < today.year ||
                (meetingDate.year == today.year && meetingDate.month < today.month) ||
                (meetingDate.year == today.year && meetingDate.month == today.month && meetingDate.day < today.day);
@@ -717,7 +644,6 @@ class ProfileScreenState extends State<ProfileScreen> {
     return false;
   }
 
-  // 🆕 Проверяем, есть ли хоть одно новое заполненное поле
   bool _hasAnyNewProfileFields() {
     return _profile?['height'] != null ||
            _profile?['weight'] != null ||
@@ -728,7 +654,6 @@ class ProfileScreenState extends State<ProfileScreen> {
            _profile?['has_children'] != null;
   }
 
-  // 🆕 Строим красивый бейджик с иконкой
   Widget _buildInfoBadge(IconData icon, String text) {
     final theme = Theme.of(context);
     
@@ -757,33 +682,11 @@ class ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-   // 🆕 Карточка верификации
+  // 🆕 Карточка верификации (с размытием)
   Widget _buildVerificationCard() {
     final theme = Theme.of(context);
-    // Проверяем, активна ли премиум (золотая) тема
-    final isPremium = theme.primaryColor == const Color(0xFFD4AF37);
     final isVerified = _profile?['is_verified'] ?? false;
     
-    // Определяем цвета в зависимости от темы
-    Color gradientStart;
-    Color gradientEnd;
-    Color borderColor;
-    Color iconContainerColor;
-
-    if (isPremium) {
-      // 👑 Золотая тема: настоящий стеклянный эффект
-      gradientStart = Colors.white.withValues(alpha: 0.05);
-      gradientEnd = Colors.white.withValues(alpha: 0.02);
-      borderColor = isVerified ? theme.primaryColor : theme.primaryColor.withValues(alpha: 0.3);
-      iconContainerColor = theme.primaryColor.withValues(alpha: 0.15);
-    } else {
-      //  Базовая тема: темный бургунди
-      gradientStart = theme.cardTheme.color ?? Colors.transparent;
-      gradientEnd = theme.cardTheme.color?.withValues(alpha: 0.5) ?? Colors.transparent;
-      borderColor = isVerified ? theme.primaryColor : theme.primaryColor.withValues(alpha: 0.3);
-      iconContainerColor = theme.primaryColor.withValues(alpha: 0.15);
-    }
-
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -793,64 +696,67 @@ class ProfileScreenState extends State<ProfileScreen> {
           ),
         ).then((_) => loadProfile());
       },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isVerified
-                ? [theme.primaryColor.withValues(alpha: 0.15), theme.primaryColor.withValues(alpha: 0.05)]
-                : [gradientStart, gradientEnd],
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: borderColor,
-            width: isVerified ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: iconContainerColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isVerified ? Icons.verified : Icons.verified_outlined,
-                color: theme.primaryColor,
-                size: 28,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isVerified 
+                  ? theme.primaryColor.withValues(alpha: 0.15)
+                  : Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isVerified ? theme.primaryColor : theme.primaryColor.withValues(alpha: 0.3),
+                width: isVerified ? 1.5 : 1,
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isVerified ? 'ВЕРИФИЦИРОВАНЫ' : 'ПОЛУЧИТЬ ВЕРИФИКАЦИЮ',
-                    style: GoogleFonts.montserrat(
-                      color: theme.primaryColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                    ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    isVerified 
-                        ? 'Золотая галочка доверия активна' 
-                        : 'Повысьте доверие к своему профилю',
-                    style: GoogleFonts.montserrat(
-                      color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                      fontSize: 12,
-                    ),
+                  child: Icon(
+                    isVerified ? Icons.verified : Icons.verified_outlined,
+                    color: theme.primaryColor,
+                    size: 28,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isVerified ? 'ВЕРИФИЦИРОВАНЫ' : 'ПОЛУЧИТЬ ВЕРИФИКАЦИЮ',
+                        style: GoogleFonts.montserrat(
+                          color: theme.primaryColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        isVerified 
+                            ? 'Золотая галочка доверия активна' 
+                            : 'Повысьте доверие к своему профилю',
+                        style: GoogleFonts.montserrat(
+                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: theme.primaryColor, size: 24),
+              ],
             ),
-            Icon(Icons.chevron_right, color: theme.primaryColor, size: 24),
-          ],
+          ),
         ),
       ),
     );

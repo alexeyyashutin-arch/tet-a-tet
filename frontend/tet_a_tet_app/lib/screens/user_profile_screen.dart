@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../utils/url_helper.dart';
 import '../widgets/app_background.dart';
+import '../widgets/glass_card.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -242,61 +243,52 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               if ((bio != null && bio.isNotEmpty) || _hasAnyNewProfileFields()) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Container(
-                    width: double.infinity,
+                  child: GlassCard(
                     padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: theme.cardTheme.color,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                    children: [
+                      Text(
+                        'ОБО МНЕ',
+                        style: GoogleFonts.montserrat(
+                          color: theme.primaryColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      if (bio != null && bio.isNotEmpty) ...[
                         Text(
-                          'ОБО МНЕ',
+                          bio,
                           style: GoogleFonts.montserrat(
-                            color: theme.primaryColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
+                            color: theme.textTheme.bodyLarge?.color,
+                            fontSize: 15,
+                            height: 1.5,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        
-                        if (bio != null && bio.isNotEmpty) ...[
-                          Text(
-                            bio,
-                            style: GoogleFonts.montserrat(
-                              color: theme.textTheme.bodyLarge?.color,
-                              fontSize: 15,
-                              height: 1.5,
-                            ),
-                          ),
-                          if (_hasAnyNewProfileFields()) ...[
-                            const SizedBox(height: 16),
-                            Divider(color: theme.primaryColor, height: 1, thickness: 0.5),
-                            const SizedBox(height: 16),
-                          ],
-                        ],
-
                         if (_hasAnyNewProfileFields()) ...[
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: [
-                              if (_user?['height'] != null) _buildInfoBadge(Icons.height, '${_user!['height']} см'),
-                              if (_user?['weight'] != null) _buildInfoBadge(Icons.monitor_weight, '${_user!['weight']} кг'),
-                              if (_user?['body_type'] != null) _buildInfoBadge(Icons.fitness_center, _user!['body_type']),
-                              if (_user?['alcohol_attitude'] != null) _buildInfoBadge(Icons.wine_bar, _user!['alcohol_attitude']),
-                              if (_user?['smoking_attitude'] != null) _buildInfoBadge(Icons.smoke_free, _user!['smoking_attitude']),
-                              if (_user?['marital_status'] != null) _buildInfoBadge(Icons.favorite_outline, _user!['marital_status']),
-                              if (_user?['has_children'] != null) _buildInfoBadge(Icons.child_care, _user!['has_children'] == 'Есть' ? 'Есть дети' : 'Нет детей'),
-                            ],
-                          ),
+                          const SizedBox(height: 16),
+                          Divider(color: theme.primaryColor, height: 1, thickness: 0.5),
+                          const SizedBox(height: 16),
                         ],
                       ],
-                    ),
+                  
+                      if (_hasAnyNewProfileFields()) ...[
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            if (_user?['height'] != null) _buildInfoBadge(Icons.height, '${_user!['height']} см'),
+                            if (_user?['weight'] != null) _buildInfoBadge(Icons.monitor_weight, '${_user!['weight']} кг'),
+                            if (_user?['body_type'] != null) _buildInfoBadge(Icons.fitness_center, _user!['body_type']),
+                            if (_user?['alcohol_attitude'] != null) _buildInfoBadge(Icons.wine_bar, _user!['alcohol_attitude']),
+                            if (_user?['smoking_attitude'] != null) _buildInfoBadge(Icons.smoke_free, _user!['smoking_attitude']),
+                            if (_user?['marital_status'] != null) _buildInfoBadge(Icons.favorite_outline, _user!['marital_status']),
+                            if (_user?['has_children'] != null) _buildInfoBadge(Icons.child_care, _user!['has_children'] == 'Есть' ? 'Есть дети' : 'Нет детей'),
+                          ],
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -319,15 +311,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                     const SizedBox(height: 12),
                     if (_photos.isEmpty)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: theme.cardTheme.color,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
-                        ),
-                        child: Center(
+                      GlassCard(
+                        children: [Center(
                           child: Text(
                             'Альбом пуст',
                             style: GoogleFonts.montserrat(
@@ -335,7 +320,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               fontSize: 14,
                             ),
                           ),
-                        ),
+                        ),],
                       )
                     else
                       GridView.builder(

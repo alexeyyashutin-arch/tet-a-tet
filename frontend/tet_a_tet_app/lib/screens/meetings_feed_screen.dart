@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../widgets/app_background.dart';
 import 'meeting_detail_screen.dart';
 import 'dart:ui';
+import '../widgets/glass_card.dart';
 
 class MeetingsFeedScreen extends StatefulWidget {
   const MeetingsFeedScreen({super.key});
@@ -426,80 +427,75 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
         },
         child: Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          child: Container(
+          child: GlassCard(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.cardTheme.color,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: theme.primaryColor.withValues(alpha: 0.3),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(genderIcon, color: genderColor, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        meeting['title'],
-                        style: GoogleFonts.montserrat(
-                          color: theme.textTheme.bodyLarge?.color,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          height: 1.2,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 12),
-                
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.location_on, color: theme.primaryColor, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        meeting['location'] ?? 'Место не указано',
-                        style: GoogleFonts.montserrat(
-                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                          fontSize: 13,
-                          height: 1.3,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.calendar_today, color: theme.primaryColor, size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          formattedDate,
+            borderOpacity: 0.5,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(genderIcon, color: genderColor, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          meeting['title'],
                           style: GoogleFonts.montserrat(
-                            color: theme.primaryColor,
-                            fontSize: 12,
+                            color: theme.textTheme.bodyLarge?.color,
+                            fontSize: 16,
                             fontWeight: FontWeight.w600,
+                            height: 1.2,
                           ),
-                          textAlign: TextAlign.right,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 12),
+                  
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.location_on, color: theme.primaryColor, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          meeting['location'] ?? 'Место не указано',
+                          style: GoogleFonts.montserrat(
+                            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                            fontSize: 13,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.calendar_today, color: theme.primaryColor, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            formattedDate,
+                            style: GoogleFonts.montserrat(
+                              color: theme.primaryColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

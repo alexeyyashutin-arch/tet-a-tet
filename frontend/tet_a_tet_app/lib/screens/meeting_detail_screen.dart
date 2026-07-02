@@ -8,6 +8,7 @@ import '../widgets/app_background.dart';
 import 'chat_screen.dart';
 import 'user_profile_screen.dart';
 import 'my_meetings_screen.dart';
+import '../widgets/glass_card.dart';
 
 class MeetingDetailScreen extends StatelessWidget {
   final Map<String, dynamic> meeting;
@@ -220,22 +221,18 @@ class MeetingDetailScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
+                      GlassCard(
                         padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: theme.cardTheme.color,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
-                        ),
-                        child: Text(
-                          meeting['partner_wishes'],
-                          style: GoogleFonts.montserrat(
-                            color: theme.textTheme.bodyLarge?.color,
-                            fontSize: 15,
-                            height: 1.4,
+                        children: [
+                          Text(
+                            meeting['partner_wishes'],
+                            style: GoogleFonts.montserrat(
+                              color: theme.textTheme.bodyLarge?.color,
+                              fontSize: 15,
+                              height: 1.4,
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
@@ -461,14 +458,9 @@ class MeetingDetailScreen extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Container(
+      child: GlassCard(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.cardTheme.color,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
-        ),
-        child: Column(
+        children: [Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             InkWell(
@@ -616,6 +608,7 @@ class MeetingDetailScreen extends StatelessWidget {
             ),
           ],
         ),
+        ],
       ),
     );
   }

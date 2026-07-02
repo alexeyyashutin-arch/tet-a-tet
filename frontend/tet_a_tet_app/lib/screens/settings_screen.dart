@@ -25,8 +25,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // 🎨 Внешний вид
   String _language = 'ru';
-  String _theme = 'basic';
-  bool _isPremium = false; 
 
   @override
   void initState() {
@@ -38,8 +36,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final push = await SettingsService.isPushEnabled();
     final sound = await SettingsService.isSoundEnabled();
     final lang = await SettingsService.getLanguage();
-    final theme = await SettingsService.getTheme(); 
-    final isPremium = await _api.isPremium(); 
 
     final serverSettings = await _api.getNotificationSettings();
     final responses = serverSettings?['notify_responses'] ?? true;
@@ -55,8 +51,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _responsesNotify = responses;
         _messagesNotify = messages;
         _language = lang;
-        _theme = theme;
-        _isPremium = isPremium;
       });
     }
   }
@@ -157,8 +151,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 12),
               _buildGlassCard(
                 children: [
-                  _buildThemeTile(),
-                  _buildDivider(),
                   _buildLanguageTile(),
                 ],
               ),
@@ -265,45 +257,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // 🪟 Стеклянная карточка
   Widget _buildGlassCard({required List<Widget> children}) {
     final theme = Theme.of(context);
-    final isPremium = theme.primaryColor == const Color(0xFFD4AF37);
     
-    if (isPremium) {
-      // 👑 В золотой теме — стеклянный эффект с blur
-      return ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: theme.primaryColor.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              children: children,
+    // 👑 Всегда используем стеклянный эффект с blur
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.primaryColor.withValues(alpha: 0.2),
+              width: 1,
             ),
           ),
+          child: Column(
+            children: children,
+          ),
         ),
-      );
-    }
-    
-    // 🍷 В базовой теме — тёмная карточка без blur
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.primaryColor.withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: children,
       ),
     );
   }
@@ -593,94 +566,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // 🎨 Выбор темы
-  Widget _buildThemeTile() {
-    final theme = Theme.of(context);
-    // 🆕 Брендовый золотой цвет для пометки PREMIUM — всегда золотой
-    const premiumGold = Color(0xFFD4AF37);
-    
-    return ListTile(
-      leading: Icon(Icons.palette, color: theme.primaryColor, size: 24),
-      title: Text(
-        'Тема оформления',
-        style: GoogleFonts.montserrat(
-          color: theme.textTheme.bodyLarge?.color,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: theme.primaryColor.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: theme.primaryColor.withValues(alpha: 0.4),
-            width: 1,
-          ),
-        ),
-        child: DropdownButton<String>(
-          value: _theme,
-          dropdownColor: theme.scaffoldBackgroundColor,
-          underline: const SizedBox(),
-          icon: Icon(Icons.arrow_drop_down, color: theme.primaryColor, size: 20),
-          style: GoogleFonts.montserrat(
-            color: theme.primaryColor,
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-          ),
-          items: [
-            const DropdownMenuItem(value: 'basic', child: Text('🍷 Базовая')),
-            DropdownMenuItem(
-              value: 'premium',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('👑 Золотая'),
-                  if (!_isPremium) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: premiumGold,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'PREMIUM',
-                        style: GoogleFonts.montserrat(
-                          color: Colors.black,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-          onChanged: _isPremium
-              ? (value) async {
-                  if (value != null) {
-                    setState(() => _theme = value);
-                    await SettingsService.setTheme(value);
-                    if (mounted) {
-                      final appState = context.findAncestorStateOfType<TetATetAppState>();
-                      if (appState != null) {
-                        appState.loadTheme();
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(value == 'basic' ? 'Тема изменена на базовую 🍷' : 'Тема изменена на золотую 👑'),
-                          backgroundColor: theme.primaryColor,
-                        ),
-                      );
-                    }
-                  }
-                }
-              : null,
-        ),
-      ),
-    );
-  }
 }

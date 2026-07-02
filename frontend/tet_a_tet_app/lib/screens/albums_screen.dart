@@ -129,37 +129,6 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
     }
   }
 
-  // Future<void> _deletePhoto(String photoId, int index, String albumType) async {
-  //   final confirm = await showDialog<bool>(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       backgroundColor: const Color(0xFF1E1E1E),
-  //       title: const Text('Удалить фото?', style: TextStyle(color: Colors.white)),
-  //       content: const Text('Это действие нельзя отменить.', style: TextStyle(color: Colors.grey)),
-  //       actions: [
-  //         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена')),
-  //         TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Удалить', style: TextStyle(color: Colors.redAccent))),
-  //       ],
-  //     ),
-  //   );
-
-  //   if (confirm == true) {
-  //     final success = await _api.deletePhoto(photoId);
-  //     if (success && mounted) {
-  //       setState(() {
-  //         if (albumType == 'public') {
-  //           _publicPhotos.removeAt(index);
-  //         } else {
-  //           _privatePhotos.removeAt(index);
-  //         }
-  //       });
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text('Фото удалено'), backgroundColor: Colors.green),
-  //       );
-  //     }
-  //   }
-  // }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

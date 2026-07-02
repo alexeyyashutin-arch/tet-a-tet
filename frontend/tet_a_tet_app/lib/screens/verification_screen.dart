@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/api_service.dart';
 import '../widgets/app_background.dart';
+import '../widgets/glass_card.dart';
 
 class VerificationScreen extends StatefulWidget {
   const VerificationScreen({super.key});
@@ -387,31 +388,23 @@ class _VerificationScreenState extends State<VerificationScreen> {
           const SizedBox(height: 24),
           
           // Описание
-          Container(
+          GlassCard(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: theme.cardTheme.color?.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: theme.primaryColor.withValues(alpha: 0.2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Зачем нужна верификация?',
-                  style: GoogleFonts.montserrat(
-                    color: theme.textTheme.bodyLarge?.color,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
+            children: [
+              Text(
+                'Зачем нужна верификация?',
+                style: GoogleFonts.montserrat(
+                  color: theme.textTheme.bodyLarge?.color,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 12),
-                _buildBenefit(Icons.star, 'Золотая галочка рядом с именем'),
-                _buildBenefit(Icons.shield, 'Больше доверия от других пользователей'),
-                _buildBenefit(Icons.trending_up, 'Приоритет в ленте встреч'),
-                _buildBenefit(Icons.favorite, 'Больше откликов на ваши встречи'),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              _buildBenefit(Icons.star, 'Золотая галочка рядом с именем'),
+              _buildBenefit(Icons.shield, 'Больше доверия от других пользователей'),
+              _buildBenefit(Icons.trending_up, 'Приоритет в ленте встреч'),
+              _buildBenefit(Icons.favorite, 'Больше откликов на ваши встречи'),
+            ],
           ),
           
           const SizedBox(height: 24),
@@ -518,20 +511,20 @@ class _VerificationScreenState extends State<VerificationScreen> {
   Widget _buildImagePicker() {
     final theme = Theme.of(context);
     
-    return GestureDetector(
-      onTap: _pickImage,
-      child: Container(
-        height: 200,
-        decoration: BoxDecoration(
-          color: theme.cardTheme.color?.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _selectedImage != null 
-                ? theme.primaryColor 
-                : theme.primaryColor.withValues(alpha: 0.3),
-            width: _selectedImage != null ? 2 : 1,
-          ),
-        ),
+        return GestureDetector(
+          onTap: _pickImage,
+          child: Container(
+            height: 200,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.4), // 🆕 Тёмный фон вместо светлого!
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _selectedImage != null 
+                    ? theme.primaryColor 
+                    : theme.primaryColor.withValues(alpha: 0.3),
+                width: _selectedImage != null ? 2 : 1,
+              ),
+            ),
         child: _selectedImage != null
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(15),

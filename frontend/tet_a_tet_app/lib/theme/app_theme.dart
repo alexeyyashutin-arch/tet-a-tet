@@ -2,98 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // 🍷 Базовая тема: Тёмный бургунди + Бежевый (белое вино)
-  static ThemeData get basicTheme {
-    const beige = Color(0xFFF5F1E8); // 🆕 Бежевый (белое вино) — основной цвет!
-    const beigeDark = Color(0xFFD4C5B0); // 🆕 Тёмно-бежевый для рамок и неактивных элементов
-    const burgundy = Color(0xFF722F37); // Классический бургунди для рамок карточек
-    const veryDarkBurgundy = Color(0xFF1A0508); // Почти чёрный бургунди для фона
-    const darkCard = Color(0xFF2A0A0E); // Чуть светлее фона для карточек
-
-    return ThemeData(
-      brightness: Brightness.dark,
-      primaryColor: beige, // 🆕 Теперь основной цвет — бежевый!
-      scaffoldBackgroundColor: veryDarkBurgundy,
-      
-      textTheme: GoogleFonts.montserratTextTheme(
-        const TextTheme(
-          bodyLarge: TextStyle(color: beige, fontSize: 16),
-          bodyMedium: TextStyle(color: beigeDark, fontSize: 14),
-          titleLarge: TextStyle(color: beige, fontSize: 20, fontWeight: FontWeight.bold),
-          titleMedium: TextStyle(color: beige, fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-      ),
-      
-      appBarTheme: AppBarTheme(
-        backgroundColor: veryDarkBurgundy.withValues(alpha: 0.95),
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: GoogleFonts.montserrat(
-          color: beige, // 🆕 Заголовок AppBar теперь бежевый
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 2.0,
-        ),
-        iconTheme: const IconThemeData(color: beige), // 🆕 Иконки в AppBar бежевые
-      ),
-      
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: beige, //  Кнопки бежевые
-          foregroundColor: veryDarkBurgundy, //  Текст на кнопках тёмный (для контраста)
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 2,
-        ),
-      ),
-      
-      cardTheme: CardThemeData(
-        color: darkCard,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: burgundy, width: 1), // 🆕 Рамки карточек классического бургунди
-        ),
-      ),
-      
-      switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return beige;
-          }
-          return Colors.grey;
-        }),
-        trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return beige.withValues(alpha: 0.5);
-          }
-          return Colors.grey.withValues(alpha: 0.3);
-        }),
-      ),
-      
-      iconTheme: const IconThemeData(color: beige), //  Все иконки по умолчанию бежевые
-      
-      dividerColor: burgundy.withValues(alpha: 0.3),
-      
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: darkCard,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: burgundy, width: 1),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: burgundy.withValues(alpha: 0.5)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: beige, width: 1.5), // 🆕 Фокус на поле ввода — бежевый
-        ),
-      ),
-    );
-  }
-
-  // 👑 Премиум тема: Золото + Чёрный (наша текущая)
+  // 👑 Наша фирменная золотая тема — золото + чёрный
   static ThemeData get premiumTheme {
     const gold = Color(0xFFD4AF37);
     const goldLight = Color(0xFFFFD700);
@@ -164,6 +73,23 @@ class AppTheme {
       iconTheme: const IconThemeData(color: gold),
       
       dividerColor: Colors.white.withValues(alpha: 0.05),
+      
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.05),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: gold.withValues(alpha: 0.3), width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: gold.withValues(alpha: 0.3)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: gold, width: 1.5),
+        ),
+      ),
     );
   }
 }

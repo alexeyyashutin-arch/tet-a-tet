@@ -7,16 +7,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
-import 'services/settings_service.dart';
 
-
-// 🆕 ВОТ ЭТО НАДО ДОБАВИТЬ В САМЫЙ ВЕРХ (строго до main и до любых классов!)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Если нужно, чтобы в фоне тоже работал Firebase, инициализируем его и тут
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   print('🔔 Получено фоновое сообщение: ${message.messageId}');
 }
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -40,27 +37,16 @@ class TetATetAppState extends State<TetATetApp> {
   final _api = ApiService();
   bool _isLoading = true;
   bool _isLoggedIn = false;
-  String _theme = 'basic';  // 🆕 Тема по умолчанию
 
   @override
   void initState() {
     super.initState();
     _checkAuth();
-    loadTheme();  // 🆕 Загружаем тему
-  }
-
-  // 🆕 Загружаем тему из настроек
-  Future<void> loadTheme() async {
-    final theme = await SettingsService.getTheme();
-    if (mounted) {
-      setState(() => _theme = theme);
-    }
   }
 
   Future<void> _checkAuth() async {
     final token = await _api.getToken();
     
-    // Если токена нет — сразу показываем экран входа
     if (token == null) {
       if (mounted) {
         setState(() {
@@ -71,7 +57,6 @@ class TetATetAppState extends State<TetATetApp> {
       return;
     }
     
-    // Проверяем токен, но с таймаутом
     try {
       final profile = await _api.getProfile().timeout(
         const Duration(seconds: 3),
@@ -85,7 +70,6 @@ class TetATetAppState extends State<TetATetApp> {
         });
       }
     } catch (e) {
-      // Если ошибка — считаем, что не авторизован
       if (mounted) {
         setState(() {
           _isLoggedIn = false;
@@ -100,7 +84,7 @@ class TetATetAppState extends State<TetATetApp> {
     return MaterialApp(
       title: 'TET-A-TET',
       debugShowCheckedModeBanner: false,
-      theme: _theme == 'premium' ? AppTheme.premiumTheme : AppTheme.basicTheme,  // 🆕 Применяем тему
+      theme: AppTheme.premiumTheme,  // 👑 Всегда используем золотую тему
       localizationsDelegates: const[
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
