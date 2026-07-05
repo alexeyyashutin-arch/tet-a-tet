@@ -13,6 +13,7 @@ class User(Base):
     is_verified = Column(Boolean, default=False, nullable=False)
     is_admin = Column(Boolean, default=False, nullable=False)
     is_premium = Column(Boolean, default=False, nullable=False)
+    is_blocked = Column(Boolean, default=False, nullable=False)  # 🆕 Блокировка админом
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     
     # Поля для SMS-кода и защиты

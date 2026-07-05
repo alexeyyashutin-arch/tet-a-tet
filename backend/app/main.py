@@ -1,16 +1,21 @@
 import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from .database import engine, Base
 from . import models
 from .routers import auth
 from .routers import users
-from .routers import photos 
+from .routers import photos
 from .routers import meetings
 from .routers import responses
 from .routers import messages
 from .routers import verification
+from .routers import admin  # 🆕 Админка
 from .redis_client import get_redis, close_redis  # 🆕 Подключаем Redis
+
+# 🆕 Подключаем Jinja2 для рендеринга HTML-шаблонов (админка)
+templates = Jinja2Templates(directory="templates")
 
 app = FastAPI(
     title="TET-A-TET API",
@@ -45,6 +50,7 @@ app.include_router(meetings.router)
 app.include_router(responses.router)
 app.include_router(messages.router)
 app.include_router(verification.router)
+app.include_router(admin.router)  # 🆕 Админка
 
 # Раздаём статические файлы (наши аватарки) по адресу /uploads
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

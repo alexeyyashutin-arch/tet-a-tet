@@ -5,10 +5,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ApiService {
   final Dio _dio = Dio(BaseOptions(
     baseUrl: 'http://192.168.1.150:8000',
-    connectTimeout: const Duration(seconds: 5),
-    receiveTimeout: const Duration(seconds: 3),
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 30),  // 🆕 Увеличено для загрузки фото
     headers: {
-      'Content-Type': 'application/json',
       'Accept': 'application/json',
     },
   ));
@@ -480,12 +479,17 @@ class ApiService {
       FormData formData = FormData.fromMap({
         "file": await MultipartFile.fromFile(imageFile.path, filename: fileName),
       });
-      
+
+      print('📤 Отправка заявки на верификацию: $fileName');
       final response = await _dio.post('/verification/request', data: formData);
+      print('✅ Ответ сервера: ${response.data}');
       return response.data;
     } on DioException catch (e) {
-      print('❌ Ошибка подачи заявки на верификацию: ${e.response?.data}');
-      return {'error': e.response?.data?['detail'] ?? 'Ошибка отправки'};
+      print('❌ DioException: status=${e.response?.statusCode}');
+      print('❌ DioException: data=${e.response?.data}');
+      print('❌ DioException: type=${e.type}');
+      print('❌ DioException: message=${e.message}');
+      return {'error': e.response?.data?['detail'] ?? e.message ?? 'Ошибка отправки'};
     } catch (e) {
       print('❌ Общая ошибка верификации: $e');
       return {'error': 'Ошибка приложения'};

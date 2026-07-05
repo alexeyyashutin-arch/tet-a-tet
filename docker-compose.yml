@@ -10,6 +10,7 @@ services:
       - ./backend/uploads:/tet-a-tet-backend/uploads
       - ./backend/alembic:/tet-a-tet-backend/alembic
       - ./backend/alembic.ini:/tet-a-tet-backend/alembic.ini
+      - ./backend/templates:/tet-a-tet-backend/templates
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL} # 🆕 Подключение к Redis
