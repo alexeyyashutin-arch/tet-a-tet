@@ -5,7 +5,6 @@ import '../services/settings_service.dart';
 import '../services/api_service.dart';
 import '../widgets/app_background.dart';
 import 'login_screen.dart';
-import '../main.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});

@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
-import '../utils/url_helper.dart';
 import '../widgets/app_background.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/presigned_image.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -165,10 +165,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       AspectRatio(
                         aspectRatio: 1.0,
                         child: _user!['avatar_url'] != null
-                            ? CachedNetworkImage(
-                                imageUrl: UrlHelper.getImageUrl(_user!['avatar_url'], ApiService.baseUrl),
+                            ? PresignedImage(
+                                photoKey: _user!['avatar_url'],
                                 fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
+                                placeholder: Container(
                                   color: theme.cardTheme.color,
                                   child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
                                 ),
@@ -336,10 +336,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           final photoUrl = _photos[index]['photo_url'];
                           return ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            child: CachedNetworkImage(
-                              imageUrl: UrlHelper.getImageUrl(photoUrl, ApiService.baseUrl),
+                            child: PresignedImage(
+                              photoKey: photoUrl,
                               fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(
+                              placeholder: Container(
                                 color: theme.cardTheme.color,
                                 child: Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 2)),
                               ),

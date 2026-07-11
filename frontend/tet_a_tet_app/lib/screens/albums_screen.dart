@@ -2,13 +2,12 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import 'package:reorderable_grid_view/reorderable_grid_view.dart';
 import 'dart:async';
 import '../widgets/app_background.dart';
-import '../utils/url_helper.dart';
+import '../widgets/presigned_image.dart';
 
 class AlbumsScreen extends StatefulWidget {
   final String? userId;
@@ -283,13 +282,12 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
                 borderRadius: BorderRadius.circular(12),
                 child: Stack(
                   children: [
-                    CachedNetworkImage(
-                      imageUrl: UrlHelper.getImageUrl(photo['url'], ApiService.baseUrl),
+                    PresignedImage(
+                      photoKey: photo['url'],
                       width: double.infinity,
                       height: double.infinity,
                       fit: BoxFit.cover,
-                      memCacheWidth: 300,
-                      placeholder: (context, url) => Container(
+                      placeholder: Container(
                         color: theme.cardTheme.color,
                         child: Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 2)),
                       ),
@@ -379,13 +377,12 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
             borderRadius: BorderRadius.circular(12),
             child: Stack(
               children: [
-                CachedNetworkImage(
-                  imageUrl: UrlHelper.getImageUrl(photo['url'], ApiService.baseUrl),
+                PresignedImage(
+                  photoKey: photo['url'],
                   width: double.infinity,
                   height: double.infinity,
                   fit: BoxFit.cover,
-                  memCacheWidth: 300,
-                  placeholder: (context, url) => Container(
+                  placeholder: Container(
                     color: theme.cardTheme.color,
                     child: Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 2)),
                   ),
@@ -448,6 +445,7 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
           backgroundColor: Colors.green,
         ),
       );
+      setState(() {}); // Обновляем чтобы PresignedImage перезапросил URL
     }
   }
 
@@ -572,11 +570,10 @@ class _AlbumsScreenState extends State<AlbumsScreen> with TickerProviderStateMix
                     child: InteractiveViewer(
                       minScale: 0.5,
                       maxScale: 4.0,
-                      child: CachedNetworkImage(
-                        imageUrl: UrlHelper.getImageUrl(photoUrl, ApiService.baseUrl),
+                      child: PresignedImage(
+                        photoKey: photoUrl,
                         fit: BoxFit.contain,
-                        memCacheWidth: 1200,
-                        placeholder: (context, url) => CircularProgressIndicator(color: theme.primaryColor),
+                        placeholder: CircularProgressIndicator(color: theme.primaryColor),
                         errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.red),
                       ),
                     ),

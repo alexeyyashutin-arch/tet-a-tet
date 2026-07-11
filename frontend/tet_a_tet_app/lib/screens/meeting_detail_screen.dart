@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
-import '../utils/url_helper.dart';
 import '../widgets/app_background.dart';
+import '../widgets/presigned_image.dart';
 import 'chat_screen.dart';
 import 'user_profile_screen.dart';
 import 'my_meetings_screen.dart';
@@ -89,10 +89,10 @@ class MeetingDetailScreen extends StatelessWidget {
                         AspectRatio(
                           aspectRatio: 1.0,
                           child: meeting['creator_avatar_url'] != null
-                              ? CachedNetworkImage(
-                                  imageUrl: UrlHelper.getImageUrl(meeting['creator_avatar_url'], ApiService.baseUrl),
+                              ? PresignedImage(
+                                  photoKey: meeting['creator_avatar_url'],
                                   fit: BoxFit.cover,
-                                  placeholder: (context, url) => Container(
+                                  placeholder: Container(
                                     color: theme.cardTheme.color,
                                     child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
                                   ),

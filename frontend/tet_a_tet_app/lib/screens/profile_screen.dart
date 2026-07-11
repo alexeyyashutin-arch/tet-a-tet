@@ -1,10 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
-import '../utils/url_helper.dart';
 import '../widgets/app_background.dart';
+import '../widgets/presigned_image.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
@@ -127,7 +126,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => EditProfileScreen(currentProfile: _profile ?? {}),
+                        builder: (context) => EditProfileScreen(currentProfile: _profile),
                       ),
                     ).then((_) => loadProfile());
                   },
@@ -169,12 +168,12 @@ class ProfileScreenState extends State<ProfileScreen> {
                     alignment: Alignment.bottomCenter,
                     children: [
                       AspectRatio(
-                        aspectRatio: 1.0, 
+                        aspectRatio: 1.0,
                         child: _profile?['avatar_url'] != null
-                            ? CachedNetworkImage(
-                                imageUrl: UrlHelper.getImageUrl(_profile!['avatar_url'], ApiService.baseUrl),
+                            ? PresignedImage(
+                                photoKey: _profile!['avatar_url'],
                                 fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
+                                placeholder: Container(
                                   color: theme.cardTheme.color,
                                   child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
                                 ),

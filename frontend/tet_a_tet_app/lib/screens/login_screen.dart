@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tet_a_tet_app/screens/main_screen.dart';
+import 'package:tet_a_tet_app/screens/edit_profile_screen.dart';
 import '../services/api_service.dart';
 import '../widgets/background_pattern.dart';
 import '../services/push_notification_service.dart';
@@ -281,9 +282,26 @@ class _LoginScreenState extends State<LoginScreen> {
       
       if (token != null) {
         await PushNotificationService().initialize();
+        
+        // 🆕 Небольшая задержка чтобы бэкенд успел создать профиль
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // Проверяем заполненность профиля (повторно запрашиваем)
+        final profile = await _api.getProfile();
+        print('🔍 LoginScreen: профиль после входа = $profile');
+        final needsProfile = profile == null || 
+            profile['username'] == null || 
+            profile['username'] == '' ||
+            profile['username'] == 'Аноним';
+        print('🆕 LoginScreen: needsProfile = $needsProfile');
+        
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
+          MaterialPageRoute(
+            builder: (context) => needsProfile
+                ? EditProfileScreen(isNewUser: true)
+                : const MainScreen(),
+          ),
         );
       } else {
         setState(() {

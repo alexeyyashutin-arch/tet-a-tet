@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
+import 'screens/edit_profile_screen.dart';
 import 'services/api_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -37,6 +38,7 @@ class TetATetAppState extends State<TetATetApp> {
   final _api = ApiService();
   bool _isLoading = true;
   bool _isLoggedIn = false;
+  bool _needsProfile = false; // 🆕 Нужен ли онбординг
 
   @override
   void initState() {
@@ -46,26 +48,31 @@ class TetATetAppState extends State<TetATetApp> {
 
   Future<void> _checkAuth() async {
     final token = await _api.getToken();
-    
+
     if (token == null) {
       if (mounted) {
         setState(() {
           _isLoggedIn = false;
+          _needsProfile = false;
           _isLoading = false;
         });
       }
       return;
     }
-    
+
     try {
       final profile = await _api.getProfile().timeout(
         const Duration(seconds: 3),
         onTimeout: () => null,
       );
-      
+
       if (mounted) {
+        print('🔍 Профиль при входе: $profile');
         setState(() {
           _isLoggedIn = profile != null;
+          // 🆕 Если профиль есть, но username нет — нужен онбординг
+          _needsProfile = profile != null && (profile['username'] == null || profile['username'] == '');
+          print('🆕 Нужен онбординг: $_needsProfile');
           _isLoading = false;
         });
       }
@@ -73,10 +80,18 @@ class TetATetAppState extends State<TetATetApp> {
       if (mounted) {
         setState(() {
           _isLoggedIn = false;
+          _needsProfile = false;
           _isLoading = false;
         });
       }
     }
+  }
+
+  // 🆕 Вызывается после сохранения профиля
+  void onProfileSaved() {
+    setState(() {
+      _needsProfile = false;
+    });
   }
 
   @override
@@ -84,7 +99,7 @@ class TetATetAppState extends State<TetATetApp> {
     return MaterialApp(
       title: 'TET-A-TET',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.premiumTheme,  // 👑 Всегда используем золотую тему
+      theme: AppTheme.premiumTheme,
       localizationsDelegates: const[
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -101,9 +116,14 @@ class TetATetAppState extends State<TetATetApp> {
                 child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
               ),
             )
-          : _isLoggedIn
-              ? const MainScreen()
-              : const LoginScreen(),
+          : !_isLoggedIn
+              ? const LoginScreen()
+              : _needsProfile
+                  ? EditProfileScreen(
+                      isNewUser: true,
+                      onProfileSaved: onProfileSaved,
+                    )
+                  : const MainScreen(),
     );
   }
 }

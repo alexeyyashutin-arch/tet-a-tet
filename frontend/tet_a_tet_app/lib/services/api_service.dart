@@ -446,6 +446,35 @@ class ApiService {
     }
   }
 
+  // 🆕 Получить presigned URL для фото (временная ссылка, 15 минут)
+  Future<String?> getPhotoUrl(String photoId) async {
+    try {
+      final response = await _dio.post('/photos/$photoId/url');
+      return response.data['url'] as String?;
+    } catch (e) {
+      print(' Ошибка получения URL фото: $e');
+      return null;
+    }
+  }
+
+  //  Получить presigned URL по ключу файла S3
+  Future<String?> getPhotoUrlByKey(String key) async {
+    try {
+      print('📤 Запрос presigned URL для ключа: $key');
+      final response = await _dio.post('/photos/by-key/url', data: {'key': key});
+      print('✅ Ответ: ${response.data}');
+      return response.data['url'] as String?;
+    } on DioException catch (e) {
+      print('❌ DioException: status=${e.response?.statusCode}');
+      print('❌ DioException: data=${e.response?.data}');
+      print('❌ DioException: type=${e.type}');
+      return null;
+    } catch (e) {
+      print('❌ Ошибка получения URL по ключу: $e');
+      return null;
+    }
+  }
+
   // 🆕 Сохранить настройки уведомлений на сервере
   Future<bool> updateNotificationSettings({bool? notifyResponses, bool? notifyMessages}) async {
     try {

@@ -31,7 +31,13 @@
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center">
                             {% if req.avatar_url %}
-                            <img src="{{ req.avatar_url }}" alt="" class="h-10 w-10 rounded-full object-cover mr-3">
+                            <form hx-post="/admin/photos/presigned" hx-target="#avatar-{{ req.request_id }}" hx-swap="innerHTML" class="inline">
+                                <input type="hidden" name="key" value="{{ req.avatar_url }}">
+                                <input type="hidden" name="size" value="small">
+                                <button type="submit" id="avatar-{{ req.request_id }}" class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center mr-3 overflow-hidden">
+                                    <span class="text-xs text-gray-500">📷</span>
+                                </button>
+                            </form>
                             {% else %}
                             <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center mr-3">👤</div>
                             {% endif %}
@@ -42,9 +48,12 @@
                         </div>
                     </td>
                     <td class="px-6 py-4">
-                        <a href="{{ req.photo_url }}" target="_blank" class="text-purple-600 hover:text-purple-800 text-sm">
-                            🔍 Открыть фото
-                        </a>
+                        <form hx-post="/admin/photos/presigned" hx-target="#photo-modal-container" hx-swap="innerHTML">
+                            <input type="hidden" name="key" value="{{ req.photo_url }}">
+                            <button type="submit" class="text-purple-600 hover:text-purple-800 text-sm">
+                                🔍 Открыть фото
+                            </button>
+                        </form>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {{ req.created_at }}
@@ -98,4 +107,34 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Контейнер для модального окна (HTMX вставит сюда HTML) -->
+<div id="photo-modal-container"></div>
+
+<script>
+// Автозагрузка аватарок при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[id^="avatar-"]').forEach(function(btn) {
+        const form = btn.closest('form');
+        if (form) {
+            // Создаём FormData и отправляем
+            const formData = new FormData();
+            formData.append('key', form.querySelector('input[name="key"]').value);
+            formData.append('size', 'small');
+
+            fetch(form.getAttribute('hx-post'), {
+                method: 'POST',
+                body: formData,
+                headers: {'Accept': 'text/html'}
+            })
+            .then(r => r.text())
+            .then(html => {
+                btn.outerHTML = html;
+            })
+            .catch(() => {});
+        }
+    });
+});
+</script>
+
 {% endblock %}

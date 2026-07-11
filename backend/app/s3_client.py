@@ -19,34 +19,31 @@ s3_client = boto3.client(
 )
 
 async def upload_file_to_s3(file: UploadFile, folder: str = "avatars") -> str:
-    """Загружает файл в S3 и возвращает публичную ссылку"""
+    """Загружает файл в S3 и возвращает ключ файла (без URL)"""
     # Генерируем уникальное имя файла, чтобы они не перезаписывали друг друга
     import uuid
     file_extension = file.filename.split('.')[-1] if file.filename else 'jpg'
     unique_filename = f"{folder}/{uuid.uuid4()}.{file_extension}"
-    
+
     try:
         # Читаем содержимое файла
         file_content = await file.read()
-        
+
         # Определяем Content-Type
         content_type = file.content_type or 'image/jpeg'
-        
-        # Загружаем в S3
+
+        # Загружаем в S3 (без ACL — файлы приватные!)
         s3_client.put_object(
             Bucket=S3_BUCKET,
             Key=unique_filename,
             Body=file_content,
             ContentType=content_type,
-            ACL='public-read'  # Делаем файл публичным
         )
-        
-        # Формируем публичную ссылку
-        public_url = f"{S3_ENDPOINT}/{S3_BUCKET}/{unique_filename}"
-        print(f"✅ Файл загружен в S3: {public_url}")
-        
-        return public_url
-        
+
+        # Возвращаем ключ файла (не URL!)
+        print(f"✅ Файл загружен в S3: {unique_filename}")
+        return unique_filename
+
     except ClientError as e:
         print(f"❌ Ошибка загрузки в S3: {e}")
         raise Exception("Не удалось загрузить фото в облако")
@@ -66,3 +63,20 @@ async def delete_file_from_s3(file_url: str):
         
     except Exception as e:
         print(f"❌ Ошибка удаления из S3: {e}")
+
+
+async def generate_presigned_url(file_key: str, expires_in: int = 900) -> str:
+    """Генерирует временную ссылку на файл из S3 (15 минут по умолчанию)"""
+    try:
+        url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={
+                'Bucket': S3_BUCKET,
+                'Key': file_key,
+            },
+            ExpiresIn=expires_in
+        )
+        return url
+    except ClientError as e:
+        print(f"❌ Ошибка генерации presigned URL: {e}")
+        raise Exception("Не удалось получить ссылку на фото")

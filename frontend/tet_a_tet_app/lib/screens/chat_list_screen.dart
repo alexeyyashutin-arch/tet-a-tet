@@ -1,13 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
-import '../utils/url_helper.dart';
 import 'chat_screen.dart';
 import '../widgets/app_background.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/presigned_circle_avatar.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -162,14 +161,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
               child: Row(
                 children: [
                   // Аватарка собеседника
-                  CircleAvatar(
+                  PresignedCircleAvatar(
+                    photoKey: opponentAvatar,
                     radius: 24,
                     backgroundColor: theme.primaryColor.withValues(alpha: 0.2),
-                    backgroundImage: opponentAvatar != null 
-                        ? CachedNetworkImageProvider(UrlHelper.getImageUrl(opponentAvatar, ApiService.baseUrl)) 
-                        : null,
-                    child: opponentAvatar == null 
-                        ? Icon(Icons.person, color: theme.primaryColor, size: 28) 
+                    child: opponentAvatar == null
+                        ? Icon(Icons.person, color: theme.primaryColor, size: 28)
                         : null,
                   ),
                   const SizedBox(width: 16),

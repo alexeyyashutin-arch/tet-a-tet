@@ -6,16 +6,23 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
-import '../utils/url_helper.dart';
 import '../widgets/background_pattern.dart';
+import '../widgets/presigned_image.dart';
 import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  final Map<String, dynamic> currentProfile;
-  
-  const EditProfileScreen({super.key, required this.currentProfile});
+  final Map<String, dynamic>? currentProfile;
+  final bool isNewUser;
+  final VoidCallback? onProfileSaved;
+
+  const EditProfileScreen({
+    super.key,
+    this.currentProfile,
+    this.isNewUser = false,
+    this.onProfileSaved,
+  });
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -54,22 +61,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _usernameController = TextEditingController(text: widget.currentProfile['username'] ?? '');
-    _bioController = TextEditingController(text: widget.currentProfile['bio'] ?? '');
-    _selectedGender = widget.currentProfile['gender'];
-    _cityController = TextEditingController(text: widget.currentProfile['city'] ?? '');
-    
+    final profile = widget.currentProfile ?? {};
+    _usernameController = TextEditingController(text: profile['username'] ?? '');
+    _bioController = TextEditingController(text: profile['bio'] ?? '');
+    _selectedGender = profile['gender'];
+    _cityController = TextEditingController(text: profile['city'] ?? '');
+
     // 🆕 Инициализация новых полей
-    _heightController = TextEditingController(text: widget.currentProfile['height']?.toString() ?? '');
-    _weightController = TextEditingController(text: widget.currentProfile['weight']?.toString() ?? '');
-    _selectedAlcoholAttitude = widget.currentProfile['alcohol_attitude'];
-    _selectedSmokingAttitude = widget.currentProfile['smoking_attitude'];
-    _selectedBodyType = widget.currentProfile['body_type'];
-    _selectedMaritalStatus = widget.currentProfile['marital_status'];
-    _selectedHasChildren = widget.currentProfile['has_children'];
-    
-    if (widget.currentProfile['birth_date'] != null) {
-      _selectedDate = DateTime.parse(widget.currentProfile['birth_date']);
+    _heightController = TextEditingController(text: profile['height']?.toString() ?? '');
+    _weightController = TextEditingController(text: profile['weight']?.toString() ?? '');
+    _selectedAlcoholAttitude = profile['alcohol_attitude'];
+    _selectedSmokingAttitude = profile['smoking_attitude'];
+    _selectedBodyType = profile['body_type'];
+    _selectedMaritalStatus = profile['marital_status'];
+    _selectedHasChildren = profile['has_children'];
+
+    if (profile['birth_date'] != null) {
+      _selectedDate = DateTime.parse(profile['birth_date']);
       _dobController = TextEditingController(text: _formatDate(_selectedDate!));
     } else {
       _dobController = TextEditingController();
@@ -336,12 +344,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentAvatarUrl = widget.currentProfile['avatar_url'];
-    final isFemale = widget.currentProfile['gender'] == 'female' || widget.currentProfile['gender'] == 'ж';
+    final profile = widget.currentProfile ?? {};
+    final currentAvatarUrl = profile['avatar_url'];
+    final isFemale = profile['gender'] == 'female' || profile['gender'] == 'ж';
     final genderIcon = isFemale ? Icons.female : Icons.male;
     final genderColor = isFemale ? const Color(0xFFEC407A) : const Color(0xFF4FC3F7);
-    final username = widget.currentProfile['username'] ?? 'Аноним';
-    final age = widget.currentProfile['age'];
+    final username = profile['username'] ?? 'Аноним';
+    final age = profile['age'];
     final nameWithAge = age != null ? '$username, $age' : username;
 
     return Scaffold(
@@ -356,12 +365,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               backgroundColor: Colors.black.withValues(alpha: 0.3),
               elevation: 0,
               centerTitle: true,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              ),
+              automaticallyImplyLeading: !widget.isNewUser, // 🆕 Скрываем кнопку назад для онбординга
+              leading: widget.isNewUser
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
               title: Text(
-                'РЕДАКТИРОВАТЬ',
+                widget.isNewUser ? 'ЗАПОЛНИТЕ ПРОФИЛЬ' : 'РЕДАКТИРОВАТЬ',
                 style: GoogleFonts.montserrat(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -422,10 +434,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       fit: BoxFit.cover,
                                     )
                                   : currentAvatarUrl != null
-                                      ? CachedNetworkImage(
-                                          imageUrl: UrlHelper.getImageUrl(currentAvatarUrl, ApiService.baseUrl),
+                                      ? PresignedImage(
+                                          photoKey: currentAvatarUrl,
                                           fit: BoxFit.cover,
-                                          placeholder: (context, url) => Container(
+                                          placeholder: Container(
                                             color: const Color(0xFF1E1E1E),
                                             child: const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37))),
                                           ),
@@ -504,11 +516,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   const SizedBox(height: 32),
 
                   // 📝 Поля формы
-                  _buildTextField(_usernameController, 'Имя или никнейм', Icons.person),
+                  _buildTextField(_usernameController, 'Имя или никнейм', Icons.person, required: true),
                   const SizedBox(height: 16),
-                  
+
                   Text(
-                    'Дата рождения', 
+                    'Дата рождения *',
                     style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12),
                   ),
                   const SizedBox(height: 8),
@@ -516,6 +528,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     controller: _dobController,
                     readOnly: true,
                     onTap: () => _selectDate(context),
+                    validator: (value) {
+                      if (_selectedDate == null) {
+                        return 'Выбери дату';
+                      }
+                      return null;
+                    },
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
                     style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16),
                     decoration: InputDecoration(
                       hintText: 'Выбери дату',
@@ -538,7 +557,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                   // 🌍 Поле поиска города
                   Text(
-                    'Город', 
+                    'Город *',
                     style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12),
                   ),
                   const SizedBox(height: 8),
@@ -547,6 +566,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       Expanded(
                         child: TextFormField(
                           controller: _cityController,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Укажи город';
+                            }
+                            return null;
+                          },
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
                           style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16),
                           decoration: InputDecoration(
                             hintText: 'Например, Москва',
@@ -587,12 +613,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   const SizedBox(height: 16),
 
                   Text(
-                    'Пол', 
+                    'Пол *',
                     style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12),
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     initialValue: _selectedGender,
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Выбери пол';
+                      }
+                      return null;
+                    },
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
                     dropdownColor: const Color(0xFF1E1E1E),
                     style: GoogleFonts.montserrat(color: Colors.white, fontSize: 16),
                     decoration: InputDecoration(
@@ -721,15 +754,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, IconData icon) {
+  Widget _buildTextField(TextEditingController controller, String hint, IconData icon, {bool required = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(hint, style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12)),
+        Text(required ? '$hint *' : hint, style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12)),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           style: GoogleFonts.montserrat(color: Colors.white),
+          validator: required
+              ? (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Это поле обязательно';
+                  }
+                  return null;
+                }
+              : null,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: GoogleFonts.montserrat(color: Colors.grey),
@@ -737,11 +778,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             filled: true,
             fillColor: Colors.black.withValues(alpha: 0.3),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12), 
+              borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12), 
+              borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
             ),
           ),
@@ -851,7 +892,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (mounted) {
       setState(() => _isSaving = false);
       if (success) {
-        Navigator.pop(context);
+        // 🆕 Если это онбординг нового пользователя
+        if (widget.isNewUser && widget.onProfileSaved != null) {
+          widget.onProfileSaved!();
+          // Не делаем pop — main.dart сам переключит на MainScreen
+        } else {
+          Navigator.pop(context);
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Не удалось сохранить.'), backgroundColor: Colors.redAccent),

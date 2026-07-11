@@ -143,6 +143,9 @@ class _MainScreenState extends State<MainScreen> {
           _updateUnreadResponsesCount();
         } else if (index == 2) {
           _profileScreenKey.currentState?.loadProfile();
+        } else if (index == 3) {
+          // При переходе на альбомы — обновляем профиль (вдруг аватарка изменилась)
+          _profileScreenKey.currentState?.loadProfile();
         }
       },
       type: BottomNavigationBarType.fixed,

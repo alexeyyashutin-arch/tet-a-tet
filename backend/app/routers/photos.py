@@ -1,6 +1,6 @@
 import os
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
@@ -9,7 +9,7 @@ from ..database import get_db
 from ..models import User, Photo, AlbumAccess
 from ..schemas import PhotoResponse, PhotoUploadResponse, GrantAccessRequest, AccessUserInfo
 from ..dependencies import get_current_user
-from ..s3_client import upload_file_to_s3, delete_file_from_s3  # 🆕 Импортируем S3
+from ..s3_client import upload_file_to_s3, delete_file_from_s3, generate_presigned_url  # 🆕 Импортируем S3
 
 router = APIRouter(prefix="/photos", tags=["Фотографии"])
 
@@ -23,27 +23,27 @@ async def upload_photo(
     # Проверяем тип альбома
     if album_type not in ["public", "private"]:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Неверный тип альбома")
-    
+
     # Проверяем файл
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Файл должен быть изображением")
-    
+
     try:
-        # 🆕 Загружаем файл в S3 вместо локального сохранения
-        s3_url = await upload_file_to_s3(file, folder=f"albums/{album_type}")
-        
-        # Создаём запись в БД с S3 URL
+        # 🆕 Загружаем файл в S3 (теперь приватный!)
+        s3_key = await upload_file_to_s3(file, folder=f"albums/{album_type}")
+
+        # Создаём запись в БД с ключом файла (не URL!)
         photo = Photo(
             user_id=current_user.id,
             album_type=album_type,
-            url=s3_url  # 🆕 Теперь храним полный S3 URL
+            url=s3_key  # 🆕 Теперь храним ключ, не URL
         )
         db.add(photo)
         await db.commit()
         await db.refresh(photo)
-        
+
         return photo
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -59,7 +59,7 @@ async def get_public_photos(
         Photo.user_id == user_id,
         Photo.album_type == "public"
     ).order_by(Photo.order_index.asc(), Photo.uploaded_at.asc())
-    
+
     result = await db.execute(stmt)
     photos = result.scalars().all()
     return photos
@@ -73,7 +73,7 @@ async def get_my_private_photos(
         Photo.user_id == current_user.id,
         Photo.album_type == "private"
     ).order_by(Photo.order_index.asc(), Photo.uploaded_at.asc())
-    
+
     result = await db.execute(stmt)
     photos = result.scalars().all()
     return photos
@@ -91,19 +91,19 @@ async def get_user_private_photos(
     ).order_by(Photo.order_index.asc(), Photo.uploaded_at.asc())
     result = await db.execute(stmt)
     access = result.scalar_one_or_none()
-    
+
     if not access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="У вас нет доступа к приватному альбому этого пользователя"
         )
-    
+
     # Возвращаем фото
     stmt = select(Photo).where(
         Photo.user_id == user_id,
         Photo.album_type == "private"
     ).order_by(Photo.uploaded_at.desc())
-    
+
     result = await db.execute(stmt)
     photos = result.scalars().all()
     return photos
@@ -118,10 +118,10 @@ async def grant_private_access(
     stmt = select(User).where(User.id == data.user_id)
     result = await db.execute(stmt)
     target_user = result.scalar_one_or_none()
-    
+
     if not target_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
-    
+
     # Проверяем, не выдан ли уже доступ
     stmt = select(AlbumAccess).where(
         AlbumAccess.owner_id == current_user.id,
@@ -129,10 +129,10 @@ async def grant_private_access(
     )
     result = await db.execute(stmt)
     existing = result.scalar_one_or_none()
-    
+
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Доступ уже предоставлен")
-    
+
     # Выдаём доступ
     access = AlbumAccess(
         owner_id=current_user.id,
@@ -140,7 +140,7 @@ async def grant_private_access(
     )
     db.add(access)
     await db.commit()
-    
+
     return {"message": "Доступ к приватному альбому предоставлен"}
 
 @router.delete("/private/revoke-access/{user_id}")
@@ -155,13 +155,13 @@ async def revoke_private_access(
     )
     result = await db.execute(stmt)
     access = result.scalar_one_or_none()
-    
+
     if not access:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Доступ не найден")
-    
+
     await db.delete(access)
     await db.commit()
-    
+
     return {"message": "Доступ отозван"}
 
 @router.get("/private/access-list", response_model=List[AccessUserInfo])
@@ -173,7 +173,7 @@ async def get_access_list(
     stmt = select(User).join(AlbumAccess, User.id == AlbumAccess.granted_to_id).where(
         AlbumAccess.owner_id == current_user.id
     )
-    
+
     result = await db.execute(stmt)
     users = result.scalars().all()
     return users
@@ -187,23 +187,23 @@ async def delete_photo(
     stmt = select(Photo).where(Photo.id == photo_id)
     result = await db.execute(stmt)
     photo = result.scalar_one_or_none()
-    
+
     if not photo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Фото не найдено")
-    
+
     if photo.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Нельзя удалять чужие фото")
-    
-    # 🆕 Удаляем файл из S3
+
+    # 🆕 Удаляем файл из S3 по ключу
     try:
         await delete_file_from_s3(photo.url)
     except Exception as e:
         print(f"⚠️ Не удалось удалить файл из S3: {e}")
         # Продолжаем удаление из БД, даже если файл не удалился
-    
+
     await db.delete(photo)
     await db.commit()
-    
+
     return {"message": "Фото удалено"}
 
 
@@ -216,24 +216,85 @@ async def reorder_photos(
 ):
     album_type = data.get('album_type')
     photo_ids = data.get('photo_ids', [])
-    
+
     if not album_type or not photo_ids:
         raise HTTPException(status_code=400, detail="album_type и photo_ids обязательны")
-    
+
     # Обновляем порядок для каждого фото
     for index, photo_id in enumerate(photo_ids):
         stmt = select(Photo).where(Photo.id == photo_id, Photo.user_id == current_user.id)
         result = await db.execute(stmt)
         photo = result.scalar_one_or_none()
-        
+
         if photo:
             photo.order_index = index
-            
+
             # 🎯 МАГИЯ: Если это публичный альбом и фото встало на первое место (индекс 0)
             if album_type == 'public' and index == 0:
                 current_user.avatar_url = photo.url
-    
+
     # Сохраняем все изменения в базе данных
     await db.commit()
-    
+
     return {"message": "Порядок обновлён, аватарка синхронизирована!"}
+
+
+#  Получить presigned URL по ключу файла (для аватарок и др.) — ДОЛЖЕН БЫТЬ ВЫШЕ!
+@router.post("/by-key/url")
+async def get_photo_url_by_key(
+    data: dict = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получить временную ссылку на фото по ключу S3 (без проверки ID)"""
+    file_key = data.get("key")
+    if not file_key:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нужен ключ файла")
+
+    # Генерируем presigned URL (15 минут)
+    presigned_url = await generate_presigned_url(file_key)
+
+    return {
+        "url": presigned_url,
+        "expires_in": 900,
+    }
+
+
+# 🆕 Получить presigned URL для фото
+@router.post("/{photo_id}/url")
+async def get_photo_url(
+    photo_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получить временную ссылку на фото (presigned URL)"""
+    stmt = select(Photo).where(Photo.id == photo_id)
+    result = await db.execute(stmt)
+    photo = result.scalar_one_or_none()
+
+    if not photo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Фото не найдено")
+
+    # Проверяем права доступа к приватным фото
+    if photo.album_type == "private":
+        if photo.user_id != current_user.id:
+            # Проверяем, есть ли доступ
+            stmt = select(AlbumAccess).where(
+                AlbumAccess.owner_id == photo.user_id,
+                AlbumAccess.granted_to_id == current_user.id
+            )
+            result = await db.execute(stmt)
+            access = result.scalar_one_or_none()
+            if not access:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="У вас нет доступа к этому фото"
+                )
+
+    # Генерируем presigned URL (15 минут)
+    presigned_url = await generate_presigned_url(photo.url)
+
+    return {
+        "url": presigned_url,
+        "expires_in": 900,  # 15 минут в секундах
+    }

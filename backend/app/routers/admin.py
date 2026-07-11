@@ -1,7 +1,7 @@
 import os
 import random
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException, Request, status, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Form, Body
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,7 @@ from jose import jwt
 from app.database import get_db
 from app.models import User, VerificationRequest, Meeting, MeetingResponse as MeetingResponseModel
 from app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.s3_client import generate_presigned_url
 
 router = APIRouter(prefix="/admin", tags=["Админка"])
 
@@ -498,3 +499,48 @@ async def toggle_admin(request: Request, user_id: str, db: AsyncSession = Depend
         </td>
     </tr>
     """
+
+
+# --- Presigned URL для фото в админке ---
+
+@router.post("/photos/presigned")
+@admin_required
+async def get_admin_presigned_url(
+    request: Request,
+    key: str = Form(...),
+    size: str = Form("large"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получить presigned URL для фото (админка)"""
+    from fastapi.responses import HTMLResponse
+    from markupsafe import Markup
+
+    presigned_url = await generate_presigned_url(key)
+    safe_url = Markup(presigned_url)
+
+    # Если маленькое (аватарка) — возвращаем img
+    if size == "small":
+        html = f'<img src="{safe_url}" alt="Аватар" class="h-10 w-10 rounded-full object-cover">'
+        return HTMLResponse(content=html)
+
+    # Иначе — модалка
+    html = f'''
+    <script>
+        const old = document.getElementById('photo-modal');
+        if (old) old.remove();
+    </script>
+    <div id="photo-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onclick="this.style.display='none'">
+        <div class="max-w-4xl max-h-[90vh] p-4" onclick="event.stopPropagation()">
+            <img src="{safe_url}" alt="Фото" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl">
+            <div class="flex justify-center mt-4 space-x-4">
+                <a href="{safe_url}" target="_blank" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition">
+                    Открыть в новом окне
+                </a>
+                <button onclick="document.getElementById('photo-modal').style.display='none'" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition">
+                    Закрыть
+                </button>
+            </div>
+        </div>
+    </div>
+    '''
+    return HTMLResponse(content=html)
