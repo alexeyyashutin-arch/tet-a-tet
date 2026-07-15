@@ -1,138 +1,103 @@
+"""
+Главная точка входа приложения TET-A-TET.
+
+Здесь всё начинается и заканчивается:
+- Настройка жизненного цикла приложения (lifespan) — БД, Redis, папки
+- Подключение всех роутеров
+- Раздача статических файлов
+
+Важно: этот файл не должен содержать бизнес-логику!
+Вся логика живёт в роутерах (routers/) и сервисах (services/).
+"""
+
 import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+
 from .database import engine, Base
 from . import models
-from .routers import auth
-from .routers import users
-from .routers import photos
-from .routers import meetings
-from .routers import responses
-from .routers import messages
-from .routers import verification
-from .routers import admin  # 🆕 Админка
-from .redis_client import get_redis, close_redis  # 🆕 Подключаем Redis
+from .redis_client import get_redis, close_redis
 
-# 🆕 Подключаем Jinja2 для рендеринга HTML-шаблонов (админка)
-templates = Jinja2Templates(directory="templates")
+# Импортируем все роутеры
+from .routers import auth, users, photos, meetings, responses, messages, verification, admin, websocket
+from .routers import health  # root и healthcheck
+
+
+# ============================================================
+# ⏱️ LIFESPAN — управление жизненным циклом приложения
+# ============================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Современный способ управления запуском и остановкой приложения.
+
+    Всё, что ДО yield — выполняется при старте (аналог @app.on_event("startup")).
+    Всё, что ПОСЛЕ yield — выполняется при остановке (аналог @app.on_event("shutdown")).
+
+    Почему это лучше старых on_event:
+    - Код startup и shutdown в одном месте, легко читать
+    - Можно обмениваться данными между startup и shutdown через yield
+    - Не устареет в будущих версиях FastAPI
+    """
+    # --- ЗАПУСК: подготовка окружения ---
+    print("🚀 Запуск TET-A-TET API...", flush=True)
+
+    # Создаём таблицы в БД (если их ещё нет)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    # Подключаемся к Redis для кэширования
+    await get_redis()
+    print("✅ Redis подключён!", flush=True)
+
+    # Создаём папку для загруженных файлов
+    os.makedirs("uploads", exist_ok=True)
+
+    print("✨ TET-A-TET готов к работе!", flush=True)
+
+    # --- ПРИЛОЖЕНИЕ РАБОТАЕТ ---
+    yield
+
+    # --- ОСТАНОВКА: уборка за собой ---
+    print("🔌 Остановка TET-A-TET API...", flush=True)
+    await close_redis()
+    print("👋 До новых встреч!", flush=True)
+
+
+# ============================================================
+# 🏗️ СОЗДАНИЕ ПРИЛОЖЕНИЯ
+# ============================================================
 
 app = FastAPI(
     title="TET-A-TET API",
     description="Премиальный приватный сервис для романтических встреч",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,  # <-- вместо устаревших @app.on_event()
 )
 
-@app.on_event("startup")
-async def startup():
-    # Создаём таблицы в базе данных
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    
-    # 🆕 Инициализируем Redis
-    await get_redis()
-    print("✅ Redis подключён!")
-    
-    # Создаём папку для аватарок, если её нет
-    os.makedirs("uploads", exist_ok=True)
 
-@app.on_event("shutdown")
-async def shutdown():
-    # 🆕 Закрываем соединение с Redis при остановке
-    await close_redis()
-    print("🔌 Redis отключён")
+# ============================================================
+# 🚦 ПОДКЛЮЧЕНИЕ РОУТЕРОВ
+# ============================================================
 
-# Подключаем роутеры
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(photos.router)
-app.include_router(meetings.router)
-app.include_router(responses.router)
-app.include_router(messages.router)
-app.include_router(verification.router)
-app.include_router(admin.router)  # 🆕 Админка
+app.include_router(health.router)       # GET / и /health/redis
+app.include_router(auth.router)         # /auth/*
+app.include_router(users.router)        # /users/*
+app.include_router(photos.router)       # /photos/*
+app.include_router(meetings.router)     # /meetings/*
+app.include_router(responses.router)    # /responses/*
+app.include_router(messages.router)     # /messages/*
+app.include_router(verification.router) # /verification/*
+app.include_router(admin.router)        # /admin/*
+app.include_router(websocket.router)    # /ws/* (чат в реальном времени)
 
-# Раздаём статические файлы (наши аватарки) по адресу /uploads
+
+# ============================================================
+# 📁 СТАТИЧЕСКИЕ ФАЙЛЫ
+# ============================================================
+
+# Раздаём загруженные фото и аватарки по адресу /uploads
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-
-@app.get("/")
-async def root():
-    return {"message": "Добро пожаловать в TET-A-TET. Здесь начинается магия. ✨"}
-
-# 🆕 Эндпоинт для проверки статуса Redis (для тестирования)
-@app.get("/health/redis")
-async def check_redis():
-    try:
-        client = await get_redis()
-        await client.ping()
-        return {"status": "ok", "redis": "connected"}
-    except Exception as e:
-        return {"status": "error", "redis": str(e)}
-
-
-import os
-from jose import jwt, JWTError
-from fastapi import WebSocket, WebSocketDisconnect
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from .websocket_manager import manager
-from .models import Message, User
-from .database import engine # Убедись, что engine импортирован
-
-# 🆕 WebSocket для мгновенных сообщений
-@app.websocket("/ws/{meeting_id}")
-async def websocket_endpoint(websocket: WebSocket, meeting_id: str, token: str):
-    # 1. Проверяем токен (в WebSockets токен передаётся в URL: ?token=...)
-    try:
-        # ВАЖНО: Замени 'your-secret-key' на тот же секретный ключ, который ты используешь в dependencies.py для JWT!
-        SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key") 
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        user_id = payload.get("sub")
-        if user_id is None:
-            await websocket.close(code=4001)
-            return
-    except JWTError:
-        await websocket.close(code=4001)
-        return
-
-    # 2. Подключаем пользователя к комнате чата
-    await manager.connect(websocket, meeting_id)
-    
-    try:
-        while True:
-            # Ждём сообщение от клиента
-            data = await websocket.receive_json()
-            
-            if data.get("type") == "message":
-                text = data.get("text")
-                
-                # 3. Сохраняем сообщение в БД (асинхронно)
-                async with AsyncSession(engine) as db:
-                    new_message = Message(
-                        meeting_id=meeting_id,
-                        sender_id=user_id,
-                        text=text,
-                        is_read=False
-                    )
-                    db.add(new_message)
-                    await db.commit()
-                    await db.refresh(new_message)
-                    
-                    # Получаем имя отправителя для красивого отображения
-                    user = await db.get(User, user_id)
-                    sender_name = user.username if user else "Аноним"
-                    sender_avatar = user.avatar_url if user else None
-
-                # 4. Мгновенно рассылаем всем в комнате!
-                await manager.broadcast(meeting_id, {
-                    "type": "new_message",
-                    "id": str(new_message.id),
-                    "text": text,
-                    "sender_id": user_id,
-                    "sender_username": sender_name,
-                    "sender_avatar_url": sender_avatar,
-                    "created_at": new_message.created_at.isoformat()
-                })
-                
-    except WebSocketDisconnect:
-        manager.disconnect(websocket, meeting_id)
