@@ -114,11 +114,10 @@ class AccessUserInfo(BaseModel):
 class MeetingCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=200)
     description: str | None = None
-    meeting_date: date
-    meeting_time: str | None = None
     location: str | None = None
     partner_wishes: str | None = None
     finance: str = Field(default="self", pattern=r"^(self|split|partner|none)$")
+    is_adult: bool = False  # 🍓 Только для премиум-пользователей
 
 class MeetingResponse(BaseModel):
     id: UUID
@@ -126,8 +125,6 @@ class MeetingResponse(BaseModel):
     creator_id:UUID | None = None
     title: str
     description: str | None
-    meeting_date: date
-    meeting_time: str | None = None
     location: str | None
     partner_wishes: str | None
     finance: str
@@ -139,6 +136,7 @@ class MeetingResponse(BaseModel):
     creator_gender: str | None = None
     responses_count: int = 0  # 🆕 Добавляем поле для количества откликов (с дефолтом 0)
     has_responded: bool = False  # 🆕 Откликнулся ли текущий пользователь на эту встречу
+    is_adult: bool = False  # 🍓 Клубничка
    
     unread_responses_count: int = 0
    

@@ -141,6 +141,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GlassCard(
+        borderOpacity: 0.5,
         children: [
           InkWell(
             borderRadius: BorderRadius.circular(16),

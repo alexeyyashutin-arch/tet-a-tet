@@ -229,12 +229,13 @@ class ApiService {
   }
 
   // 🆕 Получить активные встречи с фильтрацией
-  Future<List<dynamic>?> getActiveMeetings({int? minAge, int? maxAge, String? gender}) async {
+  Future<List<dynamic>?> getActiveMeetings({int? minAge, int? maxAge, String? gender, bool adultOnly = false}) async {
     try {
       final queryParams = <String, dynamic>{};
       if (minAge != null) queryParams['min_age'] = minAge;
       if (maxAge != null) queryParams['max_age'] = maxAge;
       if (gender != null) queryParams['gender'] = gender;
+      if (adultOnly) queryParams['adult_only'] = true;  // 🍓 Клубничка
       
       final response = await _dio.get('/meetings/', queryParameters: queryParams);
       return response.data;

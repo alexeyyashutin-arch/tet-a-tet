@@ -496,7 +496,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _getFormattedDateTime(meeting['meeting_date'], meeting['meeting_time']),
+                  meeting['location'] ?? '',
                   style: GoogleFonts.montserrat(
                     color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                     fontSize: 12,
@@ -561,7 +561,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                 if (meetingDate != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    _getFormattedDateTime(meetingDate, meetingTime),
+                    meeting?['location'] ?? '',
                     style: GoogleFonts.montserrat(
                       color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                       fontSize: 12,

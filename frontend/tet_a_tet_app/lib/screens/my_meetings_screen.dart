@@ -186,14 +186,11 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
     final theme = Theme.of(context);
     final meetingId = meeting['id'];
     final title = meeting['title'];
-    final dateStr = meeting['meeting_date'];
-    final timeStr = meeting['meeting_time'];
     final location = meeting['location'];
     final status = meeting['status'];
     final responsesCount = meeting['responses_count'] ?? 0;
     final unreadCount = meeting['unread_responses_count'] ?? 0;
 
-    final formattedDate = _getFormattedDateTime(dateStr, timeStr);
     final statusColor = _getStatusColor(status);
     final statusText = _getStatusText(status);
     final statusIcon = _getStatusIcon(status);
@@ -212,108 +209,66 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
             ),
           ).then((_) => _loadData());
         },
-        child: Container(
+        child: GlassCard(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.cardTheme.color,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: hasUnread 
-                  ? theme.primaryColor 
-                  : theme.primaryColor.withValues(alpha: 0.5), 
-              width: hasUnread ? 2 : 1
-            ),
-            boxShadow: hasUnread ? [
-              BoxShadow(
-                color: theme.primaryColor.withValues(alpha: 0.3),
-                blurRadius: 12,
-                spreadRadius: 1,
-              )
-            ] : null,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: GoogleFonts.montserrat(
-                        color: theme.textTheme.bodyLarge?.color,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+          borderOpacity: hasUnread ? 0.8 : 0.5,
+          children: [
+            // Заголовок и статус
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.montserrat(
+                      color: theme.textTheme.bodyLarge?.color,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (hasUnread) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: theme.primaryColor,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.new_releases, color: theme.brightness == Brightness.dark ? Colors.black : Colors.white, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            unreadCount.toString(),
-                            style: GoogleFonts.montserrat(
-                              color: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ] else if (responsesCount > 0) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: theme.primaryColor.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: theme.primaryColor.withValues(alpha: 0.5)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.people_outline, color: theme.primaryColor, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            responsesCount.toString(),
-                            style: GoogleFonts.montserrat(
-                              color: theme.primaryColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                ),
+                if (hasUnread) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.2),
+                      color: theme.primaryColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: statusColor.withValues(alpha: 0.5)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(statusIcon, color: statusColor, size: 14),
-                        const SizedBox(width: 6),
+                        Icon(Icons.new_releases, color: theme.brightness == Brightness.dark ? Colors.black : Colors.white, size: 14),
+                        const SizedBox(width: 4),
                         Text(
-                          statusText,
+                          unreadCount.toString(),
                           style: GoogleFonts.montserrat(
-                            color: statusColor,
-                            fontSize: 11,
+                            color: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else if (responsesCount > 0) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: theme.primaryColor.withValues(alpha: 0.5)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.people_outline, color: theme.primaryColor, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          responsesCount.toString(),
+                          style: GoogleFonts.montserrat(
+                            color: theme.primaryColor,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -321,15 +276,43 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: statusColor.withValues(alpha: 0.5)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(statusIcon, color: statusColor, size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        statusText,
+                        style: GoogleFonts.montserrat(
+                          color: statusColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Местоположение
+            if (location != null && location.toString().isNotEmpty) ...[
+              const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.calendar_today, color: theme.primaryColor, size: 16),
+                  Icon(Icons.location_on, color: theme.primaryColor, size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      formattedDate,
+                      location,
                       style: GoogleFonts.montserrat(
                         color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                         fontSize: 13,
@@ -338,39 +321,22 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
                   ),
                 ],
               ),
-              if (location != null && location.toString().isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.location_on, color: theme.primaryColor, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        location,
-                        style: GoogleFonts.montserrat(
-                          color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'ПОДРОБНЕЕ И ОТКЛИКИ →',
-                  style: GoogleFonts.montserrat(
-                    color: theme.primaryColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
+            ],
+            const SizedBox(height: 12),
+            // Кнопка «Подробнее»
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'ПОДРОБНЕЕ И ОТКЛИКИ →',
+                style: GoogleFonts.montserrat(
+                  color: theme.primaryColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -384,15 +350,8 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
     final meetingTitle = response['meeting_title'] ?? 'Название встречи';
     final meeting = response['meeting'];
     
-    final meetingDate = meeting?['meeting_date'];
-    final meetingTime = meeting?['meeting_time'];
     final meetingLocation = meeting?['location'];
     final hasMessages = meeting?['has_messages'] ?? false;
-    
-    String formattedDate = 'Дата уточняется';
-    if (meetingDate != null) {
-      formattedDate = _getFormattedDateTime(meetingDate, meetingTime);
-    }
     
     final statusColor = _getStatusColor(status);
     final statusText = _getStatusText(status);
@@ -448,22 +407,6 @@ class _MyMeetingsScreenState extends State<MyMeetingsScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        
-        Row(
-          children: [
-            Icon(Icons.calendar_today, color: theme.primaryColor, size: 16),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                formattedDate,
-                style: GoogleFonts.montserrat(
-                  color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ],
-        ),
         
         if (meetingLocation != null && meetingLocation.toString().isNotEmpty) ...[
           const SizedBox(height: 8),

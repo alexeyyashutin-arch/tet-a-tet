@@ -21,8 +21,6 @@ class MeetingDetailScreen extends StatelessWidget {
     final username = meeting['creator_username'] ?? 'Аноним';
     final age = meeting['creator_age'];
     final nameWithAge = age != null ? '$username, $age' : username;
-    final formattedDate = _getFormattedDateTime(meeting['meeting_date'], meeting['meeting_time']);
-    
     final isFemale = meeting['creator_gender'] == 'female' || meeting['creator_gender'] == 'ж';
     final IconData genderIcon = isFemale ? Icons.female : Icons.male;
     final Color genderColor = isFemale ? const Color(0xFFEC407A) : const Color(0xFF4FC3F7);
@@ -165,7 +163,6 @@ class MeetingDetailScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
                   children: [
-                    _buildInfoRow(context,Icons.calendar_today, formattedDate),
                     if (meeting['location'] != null && meeting['location'].toString().isNotEmpty)
                       _buildInfoRow(context, Icons.location_on, meeting['location']),
                   ],
