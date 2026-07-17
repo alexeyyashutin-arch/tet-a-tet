@@ -39,6 +39,7 @@ async def create_meeting(
         user_id=current_user.id,
         title=data.title,
         description=data.description,
+        meeting_date=data.meeting_date,
         location=data.location,
         partner_wishes=data.partner_wishes,
         finance=data.finance,
@@ -57,6 +58,7 @@ async def create_meeting(
         user_id=meeting.user_id,
         title=meeting.title,
         description=meeting.description,
+        meeting_date=meeting.meeting_date,
         location=meeting.location,
         partner_wishes=meeting.partner_wishes,
         finance=meeting.finance,
@@ -66,6 +68,7 @@ async def create_meeting(
         creator_avatar_url=current_user.avatar_url,
         creator_age=calculate_age(current_user.birth_date),
         creator_gender=current_user.gender,
+        creator_is_verified=current_user.is_verified,
     )
 
 @router.get("/", response_model=List[MeetingResponse])
@@ -95,15 +98,10 @@ async def get_active_meetings(
     
     print(f"💾 Кэш miss для {cache_key} — загружаем из БД")
     
-    from datetime import timedelta, datetime, timezone
-
-    # Дата 7 дней назад — встречи старше не показываем
-    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    
-    # Базовый запрос: только активные и свежие (не старше 7 дней) встречи
+    # Базовый запрос: только активные и не истекшие встречи
     stmt = select(Meeting, User).join(User, Meeting.user_id == User.id).where(
         Meeting.status == "active",
-        Meeting.created_at >= seven_days_ago,
+        Meeting.meeting_date >= date.today(),
     )
 
     if gender:
@@ -147,6 +145,7 @@ async def get_active_meetings(
             creator_id=meeting.user_id,
             title=meeting.title,
             description=meeting.description,
+            meeting_date=meeting.meeting_date,
             location=meeting.location,
             partner_wishes=meeting.partner_wishes,
             finance=meeting.finance,
@@ -158,6 +157,7 @@ async def get_active_meetings(
             creator_gender=user.gender,
             has_responded=has_responded,
             is_adult=meeting.is_adult,
+            creator_is_verified=user.is_verified,
         ))
     
     # 🆕 Сохраняем результат в кэш на 2 минуты (120 секунд)
@@ -172,15 +172,10 @@ async def get_my_meetings(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    from datetime import timedelta, datetime, timezone
-
-    # Только свежие (не старше 7 дней) и активные встречи
-    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
-
     stmt = select(Meeting).where(
         Meeting.user_id == current_user.id,
         Meeting.status == "active",
-        Meeting.created_at >= seven_days_ago,
+        Meeting.meeting_date >= date.today(),
     ).order_by(
         Meeting.created_at.desc()
     )
@@ -214,6 +209,7 @@ async def get_my_meetings(
             creator_id=m.user_id,
             title=m.title,
             description=m.description,
+            meeting_date=m.meeting_date,
             location=m.location,
             partner_wishes=m.partner_wishes,
             finance=m.finance,
@@ -226,6 +222,7 @@ async def get_my_meetings(
             responses_count=responses_count,
             unread_responses_count=unread_count,
             has_responded=True,
+            creator_is_verified=current_user.is_verified,
         ))
     
     return MyMeetingsResponse(

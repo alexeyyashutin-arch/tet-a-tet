@@ -87,8 +87,8 @@ class Meeting(Base):
     title = Column(String(200), nullable=False)  # "Хочу поужинать в ресторане Река"
     description = Column(Text, nullable=True)  # Подробное описание
     
-    # Дата (теперь необязательна — пользователи договариваются в чате)
-    meeting_date = Column(Date, nullable=True)
+    # Дата окончания действия предложения о встрече (обязательное поле)
+    meeting_date = Column(Date, nullable=False)
     
     # Место
     location = Column(String(200), nullable=True)  # "Ресторан Река"
@@ -101,6 +101,13 @@ class Meeting(Base):
     
     # 🍓 Взрослый контент (Клубничка) — доступен только премиум-пользователям
     is_adult = Column(Boolean, default=False, nullable=False)
+    
+    # Пожелания к партнёру
+    partner_gender = Column(String(20), nullable=True)          # male / female
+    partner_min_age = Column(Integer, nullable=True)            # минимальный возраст
+    partner_max_age = Column(Integer, nullable=True)            # максимальный возраст
+    partner_marital_status = Column(String(50), nullable=True)  # Не важно / Не в браке / В браке
+    partner_has_children = Column(String(10), nullable=True)    # Не важно / Есть / Нет
     
     # Статус: "active", "completed", "cancelled"
     status = Column(String(20), nullable=False, default="active")

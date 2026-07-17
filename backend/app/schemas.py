@@ -114,10 +114,18 @@ class AccessUserInfo(BaseModel):
 class MeetingCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=200)
     description: str | None = None
+    meeting_date: date  # Дата окончания действия предложения (обязательное поле)
     location: str | None = None
     partner_wishes: str | None = None
     finance: str = Field(default="self", pattern=r"^(self|split|partner|none)$")
     is_adult: bool = False  # 🍓 Только для премиум-пользователей
+
+    # 🎯 Пожелания к партнёру
+    partner_gender: str | None = None
+    partner_min_age: int | None = None
+    partner_max_age: int | None = None
+    partner_marital_status: str | None = None
+    partner_has_children: str | None = None
 
 class MeetingResponse(BaseModel):
     id: UUID
@@ -134,9 +142,11 @@ class MeetingResponse(BaseModel):
     creator_avatar_url: str | None = None
     creator_age: int | None = None
     creator_gender: str | None = None
-    responses_count: int = 0  # 🆕 Добавляем поле для количества откликов (с дефолтом 0)
-    has_responded: bool = False  # 🆕 Откликнулся ли текущий пользователь на эту встречу
+    responses_count: int = 0
+    has_responded: bool = False
     is_adult: bool = False  # 🍓 Клубничка
+    meeting_date: date  # Дата окончания действия предложения
+    creator_is_verified: bool = False  # ✅ Верификация создателя
    
     unread_responses_count: int = 0
    

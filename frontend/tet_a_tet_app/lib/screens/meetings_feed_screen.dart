@@ -343,7 +343,8 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
     final genderIcon = isFemale ? Icons.female : Icons.male;
     final genderColor = isFemale ? const Color(0xFFEC407A) : const Color(0xFF4FC3F7);
     final isAdult = meeting['is_adult'] == true;
-    final relativeTime = _getRelativeTime(meeting['created_at']);
+    final creatorIsVerified = meeting['creator_is_verified'] == true;
+    final daysLeft = _getDaysLeft(meeting['meeting_date']);
 
     return Material(
       color: Colors.transparent,
@@ -369,8 +370,12 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
                       const SizedBox(width: 8),
                       Expanded(child: Text(meeting['title'], style: GoogleFonts.montserrat(color: theme.textTheme.bodyLarge?.color, fontSize: 16, fontWeight: FontWeight.w600, height: 1.2), maxLines: 2, overflow: TextOverflow.ellipsis)),
                       if (isAdult) ...[
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 4),
                         Text('🍓', style: TextStyle(fontSize: 18)),
+                      ],
+                      if (creatorIsVerified) ...[
+                        const SizedBox(width: 4),
+                        Icon(Icons.verified, color: const Color(0xFFD4AF37), size: 18),
                       ],
                     ],
                   ),
@@ -383,7 +388,7 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
                       const SizedBox(width: 8),
                       Expanded(child: Text(meeting['location'] ?? 'Место не указано', style: GoogleFonts.montserrat(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), fontSize: 13, height: 1.3), maxLines: 2, overflow: TextOverflow.ellipsis)),
                       const SizedBox(width: 12),
-                      Text(relativeTime, style: GoogleFonts.montserrat(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5), fontSize: 11)),
+                      Text(daysLeft, style: GoogleFonts.montserrat(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5), fontSize: 11)),
                     ],
                   ),
                 ],
@@ -395,18 +400,17 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
     );
   }
 
-  // ⏱️ Относительное время («только что», «2 мин», «3 ч», «5 дн»)
-  String _getRelativeTime(String? createdAt) {
-    if (createdAt == null) return '';
+  // 📅 Сколько дней осталось до окончания действия предложения
+  String _getDaysLeft(String? meetingDate) {
+    if (meetingDate == null) return '';
     try {
-      final created = DateTime.parse(createdAt);
+      final expiry = DateTime.parse(meetingDate);
       final now = DateTime.now();
-      final diff = now.difference(created);
-      if (diff.inMinutes < 1) return 'только что';
-      if (diff.inMinutes < 60) return '${diff.inMinutes} мин';
-      if (diff.inHours < 24) return '${diff.inHours} ч';
-      if (diff.inDays < 7) return '${diff.inDays} дн';
-      return '${diff.inDays ~/ 7} нед';
+      final diff = expiry.difference(now);
+      if (diff.inDays < 0) return 'истекло';
+      if (diff.inDays == 0) return 'сегодня';
+      if (diff.inDays == 1) return 'ещё 1 день';
+      return 'ещё ${diff.inDays} дней';
     } catch (_) {
       return '';
     }

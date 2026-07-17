@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../widgets/app_background.dart';
@@ -21,6 +20,7 @@ class MeetingDetailScreen extends StatelessWidget {
     final username = meeting['creator_username'] ?? 'Аноним';
     final age = meeting['creator_age'];
     final nameWithAge = age != null ? '$username, $age' : username;
+    final creatorIsVerified = meeting['creator_is_verified'] == true;
     final isFemale = meeting['creator_gender'] == 'female' || meeting['creator_gender'] == 'ж';
     final IconData genderIcon = isFemale ? Icons.female : Icons.male;
     final Color genderColor = isFemale ? const Color(0xFFEC407A) : const Color(0xFF4FC3F7);
@@ -120,6 +120,10 @@ class MeetingDetailScreen extends StatelessWidget {
                           padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
                           child: Row(
                             children: [
+                              if (creatorIsVerified) ...[
+                                Icon(Icons.verified, color: const Color(0xFFD4AF37), size: 24),
+                                const SizedBox(width: 4),
+                              ],
                               Icon(genderIcon, color: genderColor, size: 24),
                               const SizedBox(width: 10),
                               Text(
