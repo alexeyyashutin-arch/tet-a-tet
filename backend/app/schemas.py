@@ -147,6 +147,7 @@ class MeetingResponse(BaseModel):
     is_adult: bool = False  # 🍓 Клубничка
     meeting_date: date  # Дата окончания действия предложения
     creator_is_verified: bool = False  # ✅ Верификация создателя
+    creator_is_premium: bool = False   # 💎 Премиум-статус создателя
    
     unread_responses_count: int = 0
    

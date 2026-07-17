@@ -69,6 +69,7 @@ async def create_meeting(
         creator_age=calculate_age(current_user.birth_date),
         creator_gender=current_user.gender,
         creator_is_verified=current_user.is_verified,
+        creator_is_premium=current_user.is_premium,
     )
 
 @router.get("/", response_model=List[MeetingResponse])
@@ -76,6 +77,7 @@ async def get_active_meetings(
     min_age: int = None,
     max_age: int = None,
     gender: str = None,
+    marital_status: str = None,  # 🆕 Фильтр по семейному положению
     adult_only: bool = False,  # 🍓 Если True — только встречи 18+
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -88,7 +90,7 @@ async def get_active_meetings(
         )
 
     # 🆕 Формируем ключ кэша на основе параметров
-    cache_key = f"meetings:list:{current_user.id}:{min_age}:{max_age}:{gender}:{current_user.city}:{adult_only}"
+    cache_key = f"meetings:list:{current_user.id}:{min_age}:{max_age}:{gender}:{current_user.city}:{adult_only}:{marital_status}"
     
     # 🆕 Пытаемся получить данные из кэша
     cached_data = await cache_get(cache_key)
@@ -120,12 +122,16 @@ async def get_active_meetings(
     if current_user.city:
         stmt = stmt.where(User.city == current_user.city)
 
-    # 🍓 Фильтр: без галочки — скрываем Клубничку, с галочкой — показываем всё
+    # � Фильтр по семейному положению
+    if marital_status:
+        stmt = stmt.where(User.marital_status == marital_status)
+
+    # �🍓 Фильтр: без галочки — скрываем Клубничку, с галочкой — показываем всё
     if not adult_only:
         stmt = stmt.where(Meeting.is_adult == False)
         
-    # 🆕 Сортировка: новые встречи сверху (по дате создания)
-    stmt = stmt.order_by(Meeting.created_at.desc())
+    # 🆕 Сортировка: премиум → верифицированные → по дате истечения (ближайшие первыми)
+    stmt = stmt.order_by(User.is_premium.desc(), User.is_verified.desc(), Meeting.meeting_date.asc())
     
     result = await db.execute(stmt)
     meetings_data = result.all()
@@ -158,6 +164,7 @@ async def get_active_meetings(
             has_responded=has_responded,
             is_adult=meeting.is_adult,
             creator_is_verified=user.is_verified,
+            creator_is_premium=user.is_premium,
         ))
     
     # 🆕 Сохраняем результат в кэш на 2 минуты (120 секунд)
@@ -223,6 +230,7 @@ async def get_my_meetings(
             unread_responses_count=unread_count,
             has_responded=True,
             creator_is_verified=current_user.is_verified,
+            creator_is_premium=current_user.is_premium,
         ))
     
     return MyMeetingsResponse(

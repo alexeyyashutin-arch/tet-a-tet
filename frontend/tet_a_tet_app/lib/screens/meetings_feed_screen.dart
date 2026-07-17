@@ -344,6 +344,7 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
     final genderColor = isFemale ? const Color(0xFFEC407A) : const Color(0xFF4FC3F7);
     final isAdult = meeting['is_adult'] == true;
     final creatorIsVerified = meeting['creator_is_verified'] == true;
+    final creatorIsPremium = meeting['creator_is_premium'] == true;
     final daysLeft = _getDaysLeft(meeting['meeting_date']);
 
     return Material(
@@ -356,12 +357,64 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
         child: Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: GlassCard(
-            padding: const EdgeInsets.all(16),
-            borderOpacity: 0.5,
+            padding: EdgeInsets.fromLTRB(16, creatorIsPremium ? 8 : 16, 16, 16),
+            borderOpacity: creatorIsPremium ? 0.8 : 0.5,
+            blurSigma: creatorIsPremium ? 6.0 : 3.0,
+            gradient: creatorIsPremium
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFFD4AF37).withValues(alpha: 0.1),
+                      const Color(0xFFD4AF37).withValues(alpha: 0.05),
+                    ],
+                  )
+                : null,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 💎 Метки PREMIUM и ПРОВЕРЕН в одной строке
+                  if (creatorIsPremium || creatorIsVerified)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (creatorIsPremium)
+                            Text(
+                              'PREMIUM',
+                              style: GoogleFonts.montserrat(
+                                color: const Color(0xFFD4AF37),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 3.0,
+                              ),
+                            )
+                          else
+                            const SizedBox.shrink(),
+                          if (creatorIsVerified)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.verified, color: Color(0xFFD4AF37), size: 14),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'VERIFIED',
+                                  style: GoogleFonts.montserrat(
+                                    color: const Color(0xFFD4AF37),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 3.0,
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            const SizedBox.shrink(),
+                        ],
+                      ),
+                    ),
                   // Первая строка: название + 🍓
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -372,10 +425,6 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
                       if (isAdult) ...[
                         const SizedBox(width: 4),
                         Text('🍓', style: TextStyle(fontSize: 18)),
-                      ],
-                      if (creatorIsVerified) ...[
-                        const SizedBox(width: 4),
-                        Icon(Icons.verified, color: const Color(0xFFD4AF37), size: 18),
                       ],
                     ],
                   ),
