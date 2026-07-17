@@ -84,15 +84,38 @@ async def get_user_private_photos(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # Проверяем, есть ли доступ
-    stmt = select(AlbumAccess).where(
-        AlbumAccess.owner_id == user_id,
-        AlbumAccess.granted_to_id == current_user.id
-    ).order_by(Photo.order_index.asc(), Photo.uploaded_at.asc())
-    result = await db.execute(stmt)
-    access = result.scalar_one_or_none()
+    # Проверяем, есть ли доступ: смотрим активные отклики пользователя на 🍓-встречи текущего автора
+    from ..models import Meeting, MeetingResponse
+    from sqlalchemy import or_, and_
 
-    if not access:
+    stmt = (
+        select(MeetingResponse)
+        .join(Meeting, MeetingResponse.meeting_id == Meeting.id)
+        .where(
+            Meeting.is_adult == True,
+            or_(
+                # Автор встречи смотрит откликнувшегося (любой статус)
+                and_(
+                    MeetingResponse.user_id == user_id,
+                    Meeting.user_id == current_user.id,
+                    MeetingResponse.status.in_(["pending", "accepted", "confirmed"]),
+                ),
+                # Откликнувшийся смотрит автора (только accepted/confirmed)
+                and_(
+                    MeetingResponse.user_id == current_user.id,
+                    Meeting.user_id == user_id,
+                    MeetingResponse.status.in_(["accepted", "confirmed"]),
+                ),
+            ),
+        )
+        .limit(1)
+    )
+    print(f"🔒 SQL: {stmt}")
+    result = await db.execute(stmt)
+    has_access = result.scalar_one_or_none() is not None
+    print(f"🔒 Проверка доступа: current_user={current_user.id}, target_user={user_id}, has_access={has_access}")
+
+    if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="У вас нет доступа к приватному альбому этого пользователя"

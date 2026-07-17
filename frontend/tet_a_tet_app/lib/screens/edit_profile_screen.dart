@@ -727,11 +727,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   const SizedBox(height: 16),
                   
-                  // 💑 Семейное положение
-                  _buildDropdownField(
-                    'Семейное положение',
-                    _selectedMaritalStatus,
-                    ['В браке', 'Не в браке'],
+                   // 💑 Семейное положение
+                   _buildDropdownField(
+                     'Семейное положение',
+                     _selectedMaritalStatus,
+                     ['В браке', 'Свободен'],
                     (value) => setState(() => _selectedMaritalStatus = value),
                   ),
                   const SizedBox(height: 16),

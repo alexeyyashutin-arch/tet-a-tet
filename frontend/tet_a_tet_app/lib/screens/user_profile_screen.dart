@@ -5,11 +5,13 @@ import '../services/api_service.dart';
 import '../widgets/app_background.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/presigned_image.dart';
+import 'premium_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
+  final bool showPrivateAlbum;
 
-  const UserProfileScreen({super.key, required this.userId});
+  const UserProfileScreen({super.key, required this.userId, this.showPrivateAlbum = false});
 
   @override
   State<UserProfileScreen> createState() => _UserProfileScreenState();
@@ -19,6 +21,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   final _api = ApiService();
   Map<String, dynamic>? _user;
   List<dynamic> _photos = [];
+  List<dynamic> _privatePhotos = [];
   bool _isLoading = true;
 
   @override
@@ -29,11 +32,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _loadUserData() async {
     final userData = await _api.getUserById(widget.userId);
-    
+
+    List<dynamic>? privatePhotos;
+    if (widget.showPrivateAlbum) {
+      privatePhotos = await _api.getUserPrivatePhotos(widget.userId);
+    }
+
     if (mounted) {
       setState(() {
         _user = userData?['user'];
         _photos = userData?['photos'] ?? [];
+        _privatePhotos = privatePhotos ?? [];
         _isLoading = false;
       });
     }
@@ -41,17 +50,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   bool _hasAnyNewProfileFields() {
     return _user?['height'] != null ||
-           _user?['weight'] != null ||
-           _user?['body_type'] != null ||
-           _user?['alcohol_attitude'] != null ||
-           _user?['smoking_attitude'] != null ||
-           _user?['marital_status'] != null ||
-           _user?['has_children'] != null;
+        _user?['weight'] != null ||
+        _user?['body_type'] != null ||
+        _user?['alcohol_attitude'] != null ||
+        _user?['smoking_attitude'] != null ||
+        _user?['marital_status'] != null ||
+        _user?['has_children'] != null;
   }
 
   Widget _buildInfoBadge(IconData icon, String text) {
     final theme = Theme.of(context);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -77,10 +86,111 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+Widget _buildPhotoAlbum(
+  BuildContext context,
+  ThemeData theme, {
+  required String title,
+  required List<dynamic> photos,
+  required String emptyText,
+}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min, // 👈 ДОБАВИЛА: чтобы Column не растягивался лишний
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.montserrat(
+            color: theme.primaryColor,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
+            height: 1.0,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (photos.isEmpty)
+          GlassCard(
+            children: [
+              Center(
+                child: Text(
+                  emptyText,
+                  style: GoogleFonts.montserrat(
+                    color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero, //  ДОБАВИЛА: убираем внутренние отступы GridView
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 0.85,
+            ),
+            itemCount: photos.length,
+            itemBuilder: (context, index) {
+              final photoUrl = photos[index]['photo_url'] ?? photos[index]['url'];
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => Scaffold(
+                        backgroundColor: Colors.black,
+                        appBar: AppBar(
+                          backgroundColor: Colors.black,
+                          leading: IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+                        body: Center(
+                          child: InteractiveViewer(
+                            child: PresignedImage(
+                              photoKey: photoUrl,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: PresignedImage(
+                    photoKey: photoUrl,
+                    fit: BoxFit.cover,
+                    placeholder: Container(
+                      color: theme.cardTheme.color,
+                      child: Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 2)),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: theme.cardTheme.color,
+                      child: Icon(Icons.broken_image, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
+    ),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     if (_isLoading) {
       return Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -153,6 +263,48 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 💎 ПРЕМИУМ-БЛОК (только для премиум-пользователей)
+              if (_user?['is_premium'] == true)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0).copyWith(bottom: 12),
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                      );
+                    },
+                    child: ClipRect(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFFD4AF37),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'PREMIUM',
+                              style: GoogleFonts.montserrat(
+                                color: const Color(0xFFD4AF37),
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 2.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
               // 👑 БОЛЬШАЯ КВАДРАТНАЯ АВАТАРКА
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -255,7 +407,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      
+
                       if (bio != null && bio.isNotEmpty) ...[
                         Text(
                           bio,
@@ -271,7 +423,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           const SizedBox(height: 16),
                         ],
                       ],
-                  
+
                       if (_hasAnyNewProfileFields()) ...[
                         Wrap(
                           spacing: 12,
@@ -290,69 +442,30 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 8),
               ],
 
-              // 📸 Альбом фотографий
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'АЛЬБОМ',
-                      style: GoogleFonts.montserrat(
-                        color: theme.primaryColor,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (_photos.isEmpty)
-                      GlassCard(
-                        children: [Center(
-                          child: Text(
-                            'Альбом пуст',
-                            style: GoogleFonts.montserrat(
-                              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),],
-                      )
-                    else
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                        ),
-                        itemCount: _photos.length,
-                        itemBuilder: (context, index) {
-                          final photoUrl = _photos[index]['photo_url'];
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: PresignedImage(
-                              photoKey: photoUrl,
-                              fit: BoxFit.cover,
-                              placeholder: Container(
-                                color: theme.cardTheme.color,
-                                child: Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 2)),
-                              ),
-                              errorWidget: (context, url, error) => Container(
-                                color: theme.cardTheme.color,
-                                child: Icon(Icons.broken_image, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                  ],
-                ),
+              // 📸 Публичный альбом
+              const SizedBox(height: 16),
+              _buildPhotoAlbum(
+                context,
+                theme,
+                title: 'АЛЬБОМ',
+                photos: _photos,
+                emptyText: 'Альбом пуст',
               ),
+
+              // 🔒 Закрытый альбом (только если есть доступ)
+              if (_privatePhotos.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildPhotoAlbum(
+                  context,
+                  theme,
+                  title: 'ЗАКРЫТЫЙ АЛЬБОМ 🔒',
+                  photos: _privatePhotos,
+                  emptyText: 'Нет приватных фото',
+                ),
+              ],
               const SizedBox(height: 20),
             ],
           ),

@@ -165,9 +165,12 @@ class ApiService {
   // 🔑 Получить приватные фото другого пользователя (если есть доступ)
   Future<List<dynamic>?> getUserPrivatePhotos(String userId) async {
     try {
+      print('🔒 Запрос приватных фото для userId=$userId');
       final response = await _dio.get('/photos/private/$userId');
+      print('🔒 Ответ: status=${response.statusCode}, data=${response.data}');
       return response.data;
     } on DioException catch (e) {
+      print('🔒 DioException: status=${e.response?.statusCode}, data=${e.response?.data}');
       if (e.response?.statusCode == 403) {
         print('🚫 Нет доступа к приватному альбому');
       }
@@ -229,13 +232,14 @@ class ApiService {
   }
 
   // 🆕 Получить активные встречи с фильтрацией
-  Future<List<dynamic>?> getActiveMeetings({int? minAge, int? maxAge, String? gender, bool adultOnly = false}) async {
+  Future<List<dynamic>?> getActiveMeetings({int? minAge, int? maxAge, String? gender, bool adultOnly = false, String? maritalStatus}) async {
     try {
       final queryParams = <String, dynamic>{};
       if (minAge != null) queryParams['min_age'] = minAge;
       if (maxAge != null) queryParams['max_age'] = maxAge;
       if (gender != null) queryParams['gender'] = gender;
       if (adultOnly) queryParams['adult_only'] = true;  // 🍓 Клубничка
+      if (maritalStatus != null) queryParams['marital_status'] = maritalStatus;
       
       final response = await _dio.get('/meetings/', queryParameters: queryParams);
       return response.data;

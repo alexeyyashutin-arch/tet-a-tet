@@ -74,7 +74,7 @@ class MeetingDetailScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => UserProfileScreen(userId: meeting['creator_id'].toString()),
+                          builder: (context) => UserProfileScreen(userId: meeting['creator_id'].toString(), showPrivateAlbum: meeting['is_adult'] == true),
                         ),
                       );
                     }
@@ -245,7 +245,7 @@ class MeetingDetailScreen extends StatelessWidget {
               _buildResponsesSection(context, meeting['id'].toString()),
 
               // 💌 УМНАЯ КНОПКА ОТКЛИКА
-              FutureBuilder<Map<String, dynamic>?>(
+                    FutureBuilder<Map<String, dynamic>?>(
                 future: ApiService().getProfile(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -255,6 +255,7 @@ class MeetingDetailScreen extends StatelessWidget {
                   final currentUserId = snapshot.data?['id']?.toString();
                   final isCreator = meeting['creator_id']?.toString() == currentUserId;
                   final hasResponded = meeting['has_responded'] == true;
+                  final isAdult = meeting['is_adult'] == true;
 
                   if (isCreator || hasResponded) {
                     return const SizedBox(height: 20);
@@ -293,6 +294,17 @@ class MeetingDetailScreen extends StatelessWidget {
                                     ),
                                   ),
                                   const SizedBox(height: 12),
+                                  if (isAdult) ...[
+                                    Text(
+                                      '🍓 Вы соглашаетесь на встречу с клубничным продолжением. Автор встречи получит доступ к вашему закрытому альбому на время действия предложения, или пока вы не отклоните заявку.',
+                                      style: GoogleFonts.montserrat(
+                                        color: Colors.orange,
+                                        fontSize: 12,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                  ],
                                   TextField(
                                     controller: msgController,
                                     maxLines: 3,
@@ -471,6 +483,7 @@ class MeetingDetailScreen extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (context) => UserProfileScreen(
                       userId: resp['user_id'].toString(),
+                      showPrivateAlbum: meeting['is_adult'] == true,
                     ),
                   ),
                 );
@@ -565,6 +578,28 @@ class MeetingDetailScreen extends StatelessWidget {
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: () async {
+                      final isAdultMeeting = meeting['is_adult'] == true;
+                      if (isAdultMeeting) {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: theme.scaffoldBackgroundColor,
+                            title: Text('🍓 Клубничная встреча', style: GoogleFonts.montserrat(color: Colors.orange, fontWeight: FontWeight.bold)),
+                            content: Text('Пользователь получит доступ к вашему приватному альбому.', style: GoogleFonts.montserrat(color: theme.textTheme.bodyLarge?.color)),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: Text('Отмена', style: GoogleFonts.montserrat(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7))),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: Text('OK', style: GoogleFonts.montserrat(color: theme.primaryColor, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirmed != true) return;
+                      }
                       final success = await ApiService().updateResponseStatus(resp['id'].toString(), 'accepted');
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(

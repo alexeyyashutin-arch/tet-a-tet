@@ -109,6 +109,8 @@ async def get_public_user_profile(
         "smoking_attitude": user.smoking_attitude,
         "marital_status": user.marital_status,
         "has_children": user.has_children,
+        "is_verified": user.is_verified,
+        "is_premium": user.is_premium,
     }
     
     # 4. Получаем публичные фото

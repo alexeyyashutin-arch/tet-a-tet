@@ -8,6 +8,7 @@ import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 import 'verification_screen.dart';
+import 'premium_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -159,86 +160,177 @@ class ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 💎 ПРЕМИУМ-БЛОК
+              // 💎 ПРЕМИУМ-БЛОК
+              if (_profile?['is_premium'] == true)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0).copyWith(bottom: 12),
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                      );
+                    },
+                    child: ClipRect(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFFD4AF37),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'PREMIUM',
+                              style: GoogleFonts.montserrat(
+                                color: const Color(0xFFD4AF37),
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 2.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0).copyWith(bottom: 12),
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                      );
+                    },
+                    child: ClipRect(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFFD4AF37).withValues(alpha: 0.5),
+                              width: 1,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Купить PREMIUM аккаунт',
+                              style: GoogleFonts.montserrat(
+                                color: const Color(0xFFD4AF37),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
               // 👑 БОЛЬШАЯ КВАДРАТНАЯ АВАТАРКА
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Stack(
-                    alignment: Alignment.bottomCenter,
-                    children: [
-                      AspectRatio(
-                        aspectRatio: 1.0,
-                        child: _profile?['avatar_url'] != null
-                            ? PresignedImage(
-                                photoKey: _profile!['avatar_url'],
-                                fit: BoxFit.cover,
-                                placeholder: Container(
-                                  color: theme.cardTheme.color,
-                                  child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
-                                ),
-                                errorWidget: (context, url, error) => Container(
+                child: Container(
+                  decoration: _profile?['is_premium'] == true
+                      ? BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: const Color(0xFFD4AF37), width: 2),
+                        )
+                      : null,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Stack(
+                      alignment: Alignment.bottomCenter,
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 1.0,
+                          child: _profile?['avatar_url'] != null
+                              ? PresignedImage(
+                                  photoKey: _profile!['avatar_url'],
+                                  fit: BoxFit.cover,
+                                  placeholder: Container(
+                                    color: theme.cardTheme.color,
+                                    child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    color: theme.cardTheme.color,
+                                    child: Icon(Icons.person, size: 80, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
+                                  ),
+                                )
+                              : Container(
                                   color: theme.cardTheme.color,
                                   child: Icon(Icons.person, size: 80, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
                                 ),
-                              )
-                            : Container(
-                                color: theme.cardTheme.color,
-                                child: Icon(Icons.person, size: 80, color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
+                        ),
+                        Container(
+                          height: 90,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                theme.scaffoldBackgroundColor.withValues(alpha: 0.95),
+                                theme.scaffoldBackgroundColor.withValues(alpha: 0.6),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                          child: Row(
+                            children: [
+                              Icon(genderIcon, color: genderColor, size: 24),
+                              const SizedBox(width: 10),
+                              Row(
+                                children: [
+                                  Text(
+                                    nameWithAge,
+                                    style: GoogleFonts.montserrat(
+                                      color: theme.textTheme.bodyLarge?.color,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  if (_profile?['is_verified'] == true) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.all(3),
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: LinearGradient(
+                                          colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.verified,
+                                        color: Colors.black,
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
-                      ),
-                      Container(
-                        height: 90,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              theme.scaffoldBackgroundColor.withValues(alpha: 0.95),
-                              theme.scaffoldBackgroundColor.withValues(alpha: 0.6),
-                              Colors.transparent,
                             ],
                           ),
                         ),
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                        child: Row(
-                          children: [
-                            Icon(genderIcon, color: genderColor, size: 24),
-                            const SizedBox(width: 10),
-                            Row(
-                              children: [
-                                Text(
-                                  nameWithAge,
-                                  style: GoogleFonts.montserrat(
-                                    color: theme.textTheme.bodyLarge?.color,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                                if (_profile?['is_verified'] == true) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.all(3),
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: LinearGradient(
-                                        colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
-                                      ),
-                                    ),
-                                    child: const Icon(
-                                      Icons.verified,
-                                      color: Colors.black,
-                                      size: 18,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

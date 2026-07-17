@@ -157,7 +157,7 @@ async def update_response_status(
     # Если статус confirmed, меняем статус самой встречи, чтобы она исчезла из ленты
     if new_status == "confirmed":
         meeting.status = "confirmed"
-
+    
     await db.commit()
     await db.refresh(resp)
     return {"message": "Статус обновлен", "status": resp.status}
@@ -176,7 +176,8 @@ async def get_my_responses(
         User, Meeting.user_id == User.id
     ).where(
         MeetingResponse.user_id == current_user.id,
-        MeetingResponse.status.in_(["pending", "accepted", "confirmed"]) # 🆕 Фильтр по статусу!
+        MeetingResponse.status.in_(["pending", "accepted", "confirmed"]), # 🆕 Фильтр по статусу!
+        Meeting.meeting_date >= date.today(),  # 🆕 Только неистекшие встречи
     ).order_by(MeetingResponse.created_at.desc())
     
     result = await db.execute(stmt)
@@ -211,7 +212,8 @@ async def get_my_responses(
             'creator_gender': creator.gender,
             'creator_avatar_url': creator.avatar_url,
             'has_messages': has_messages,  # 🆕 Есть ли сообщения в чате
-            'has_responded': True, 
+            'has_responded': True,
+            'is_adult': meeting.is_adult,
         }
 
         responses.append(MeetingResponseInfo(
@@ -253,7 +255,7 @@ async def cancel_response(
     if response.status != "pending":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Можно отменить только заявку, которая ещё в ожидании")
     
-    # Меняем статус на отменённый (или можно просто удалить, но статус лучше для истории)
+    # Меняем статус на отменённый
     response.status = "cancelled"
     await db.commit()
     

@@ -123,8 +123,10 @@ async def get_active_meetings(
         stmt = stmt.where(User.city == current_user.city)
 
     # � Фильтр по семейному положению
+    print(f"DEBUG marital_status = '{marital_status}'")
     if marital_status:
         stmt = stmt.where(User.marital_status == marital_status)
+        print(f"DEBUG: added WHERE marital_status = '{marital_status}'")
 
     # �🍓 Фильтр: без галочки — скрываем Клубничку, с галочкой — показываем всё
     if not adult_only:
@@ -181,7 +183,7 @@ async def get_my_meetings(
 ):
     stmt = select(Meeting).where(
         Meeting.user_id == current_user.id,
-        Meeting.status == "active",
+        Meeting.status.in_(["active", "confirmed"]),
         Meeting.meeting_date >= date.today(),
     ).order_by(
         Meeting.created_at.desc()
@@ -231,6 +233,7 @@ async def get_my_meetings(
             has_responded=True,
             creator_is_verified=current_user.is_verified,
             creator_is_premium=current_user.is_premium,
+            is_adult=m.is_adult,
         ))
     
     return MyMeetingsResponse(

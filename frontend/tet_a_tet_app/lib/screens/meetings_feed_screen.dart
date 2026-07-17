@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import '../widgets/app_background.dart';
 import 'meeting_detail_screen.dart';
 import 'premium_screen.dart';
+import 'create_meeting_screen.dart';
 import 'dart:ui';
 import '../widgets/glass_card.dart';
 
@@ -22,6 +23,7 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
   int? _minAge;
   int? _maxAge;
   String? _selectedGender;
+  String? _selectedMaritalStatus;
   String? _userGender;
 
   // 🍓 Клубничка: переключатель обычные / взрослые встречи
@@ -64,6 +66,7 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
       maxAge: _maxAge,
       gender: _selectedGender,
       adultOnly: _adultOnly,
+      maritalStatus: _selectedMaritalStatus,
     );
     setState(() {
       _meetings = meetings ?? [];
@@ -76,6 +79,7 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
     int tempMinAge = _minAge ?? 18;
     int tempMaxAge = _maxAge ?? 80;
     String? tempGender = _selectedGender;
+    String? tempMaritalStatus = _selectedMaritalStatus;
     bool tempAdultOnly = _adultOnly;
 
     showModalBottomSheet(
@@ -141,6 +145,18 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
+                    Text('СЕМЕЙНОЕ ПОЛОЖЕНИЕ', style: GoogleFonts.montserrat(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        _buildGenderButton('all', 'Все', Icons.people, tempMaritalStatus, () => setState(() => tempMaritalStatus = null)),
+                        const SizedBox(width: 12),
+                        _buildGenderButton('Свободен', 'Свободен', Icons.favorite_border, tempMaritalStatus, () => setState(() => tempMaritalStatus = 'Свободен')),
+                        const SizedBox(width: 12),
+                        _buildGenderButton('В браке', 'В браке', Icons.circle, tempMaritalStatus, () => setState(() => tempMaritalStatus = 'В браке')),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
 
                     // 🍓 Чекбокс «Встречи с клубничкой» (только для премиум)
                     if (_isPremium)
@@ -161,7 +177,7 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () {
-                              setState(() { _minAge = null; _maxAge = null; _selectedGender = null; _adultOnly = false; });
+                              setState(() { _minAge = null; _maxAge = null; _selectedGender = null; _selectedMaritalStatus = null; _adultOnly = false; });
                               Navigator.pop(context);
                               _loadMeetings();
                             },
@@ -177,6 +193,7 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
                                 _minAge = tempMinAge == 18 ? null : tempMinAge;
                                 _maxAge = tempMaxAge == 80 ? null : tempMaxAge;
                                 _selectedGender = tempGender == 'all' ? null : tempGender;
+                                _selectedMaritalStatus = tempMaritalStatus == 'all' ? null : tempMaritalStatus;
                                 _adultOnly = tempAdultOnly;
                               });
                               Navigator.pop(context);
@@ -290,14 +307,32 @@ class _MeetingsFeedScreenState extends State<MeetingsFeedScreen> {
                 Stack(
                   children: [
                     IconButton(
-                      icon: Icon(Icons.tune, color: (_minAge != null || _maxAge != null || _adultOnly) ? theme.primaryColor : theme.iconTheme.color?.withValues(alpha: 0.7) ?? Colors.grey),
+                      icon: Icon(Icons.tune, color: (_minAge != null || _maxAge != null || _adultOnly || _selectedMaritalStatus != null) ? theme.primaryColor : theme.iconTheme.color?.withValues(alpha: 0.7) ?? Colors.grey),
                       onPressed: _showFilterSheet,
                     ),
-                    if (_minAge != null || _maxAge != null || _adultOnly)
+                    if (_minAge != null || _maxAge != null || _adultOnly || _selectedMaritalStatus != null)
                       Positioned(right: 12, top: 12, child: Container(width: 8, height: 8, decoration: BoxDecoration(color: theme.primaryColor, shape: BoxShape.circle))),
                   ],
                 ),
-                IconButton(icon: Icon(Icons.refresh, color: theme.primaryColor), onPressed: _loadMeetings),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.primaryColor,
+                      foregroundColor: theme.brightness == Brightness.dark ? Colors.black : Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const CreateMeetingScreen()),
+                      ).then((_) => _loadMeetings());
+                    },
+                    child: Icon(Icons.add, size: 20),
+                  ),
+                ),
               ],
             ),
           ),
